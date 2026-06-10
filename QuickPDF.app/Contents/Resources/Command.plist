@@ -199,6 +199,31 @@
 			<key>NAME</key>
 			<string>QuickPDF</string>
 			<key>COMMAND_ID</key>
+			<string>QuickPDF.run.merge</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+			<key>SAVE_AS_DIALOG</key>
+			<dict>
+				<key>MESSAGE</key>
+				<string>Save merged PDF as</string>
+				<key>DEFAULT_FILE_NAME</key>
+				<array>
+					<string>Merged.pdf</string>
+				</array>
+				<key>BUTTON_PROMPT</key>
+				<string>Merge</string>
+			</dict>
+			<key>ENVIRONMENT_VARIABLES</key>
+			<dict>
+				<key>OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS</key>
+				<string></string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
 			<string>QuickPDF.inspect.run</string>
 			<key>EXECUTION_MODE</key>
 			<string>exe_script_file_with_output_window</string>

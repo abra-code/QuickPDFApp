@@ -36,6 +36,19 @@ ENC_WEAK_WARNING_ID=118
 DEC_PASSWORD_ID=120
 DEC_RESTRICTIONS_ONLY_ID=121
 
+# Rotate controls
+ROTATE_ANGLE_PICKER_ID=130
+ROTATE_RANGE_FIELD_ID=131
+
+# Extract / Reorder controls
+EXTRACT_RANGE_FIELD_ID=140
+
+# Merge controls
+MERGE_RANGE_FIELD_ID=141
+
+# Split controls
+SPLIT_CHUNK_FIELD_ID=150
+
 # Inspect controls
 INSPECT_MODE_PICKER_ID=170
 
@@ -44,6 +57,10 @@ GROUP_OPTIMIZE_ID=200
 GROUP_ENCRYPT_ID=210
 GROUP_DECRYPT_ID=220
 GROUP_INSPECT_ID=230
+GROUP_ROTATE_ID=240
+GROUP_EXTRACT_ID=250
+GROUP_SPLIT_ID=260
+GROUP_MERGE_ID=270
 
 RUN_BUTTON_ID=90
 
@@ -141,14 +158,16 @@ clamp_quality() {
     echo "$q"
 }
 
-# Build the qpdf argument list for the current operation into the global
-# array QPDF_ARGS (flags only — no input/output paths).
-# For "optimize", the linearize toggle is reported separately in
-# QPDF_LINEARIZE (1/0) so the batch loop can do the two-pass size check.
-# Arguments: operation tag (optimize|encrypt|decrypt)
+# Build the qpdf argument lists for the current operation into globals:
+#   QPDF_ARGS      - flags placed before the input path
+#   QPDF_POST_ARGS - flags placed between the input and output paths
+#                    (e.g. --pages for extract)
+#   QPDF_LINEARIZE - 1/0, optimize only: batch loop does the two-pass size check
+# Arguments: operation tag (optimize|encrypt|decrypt|rotate|extract|split)
 build_qpdf_args() {
     local op="$1"
     QPDF_ARGS=()
+    QPDF_POST_ARGS=()
     QPDF_LINEARIZE=0
 
     case "$op" in
@@ -218,6 +237,31 @@ build_qpdf_args() {
             else
                 QPDF_ARGS+=(--decrypt)
             fi
+            ;;
+
+        rotate)
+            local angle="$OMC_ACTIONUI_VIEW_130_VALUE"
+            [ -z "$angle" ] && angle="+90"
+            local range="$OMC_ACTIONUI_VIEW_131_VALUE"
+            if [ -n "$range" ]; then
+                QPDF_ARGS+=("--rotate=${angle}:${range}")
+            else
+                QPDF_ARGS+=("--rotate=${angle}")
+            fi
+            ;;
+
+        extract)
+            # range is validated as non-empty by QuickPDF.start.batch
+            local range="$OMC_ACTIONUI_VIEW_140_VALUE"
+            QPDF_POST_ARGS=(--pages . "$range" --)
+            ;;
+
+        split)
+            local chunk="$OMC_ACTIONUI_VIEW_150_VALUE"
+            case "$chunk" in
+                '' | *[!0-9]* | 0) chunk=1 ;;
+            esac
+            QPDF_ARGS+=("--split-pages=$chunk")
             ;;
     esac
 }

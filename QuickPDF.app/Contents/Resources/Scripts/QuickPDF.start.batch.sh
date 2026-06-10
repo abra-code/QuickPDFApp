@@ -31,6 +31,24 @@ case "$operation" in
         fi
         "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "QuickPDF.run.batch"
         ;;
+    extract)
+        if [ -z "$OMC_ACTIONUI_VIEW_140_VALUE" ]; then
+            "$alert_tool" --level caution --title "QuickPDF" \
+                "Enter a page range to extract (e.g. 1-5,8 — or 5-1 to reverse)."
+            exit 0
+        fi
+        "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "QuickPDF.run.batch"
+        ;;
+    merge)
+        # Count list entries; merging fewer than 2 files is pointless
+        file_count=$(printf '%s\n' "$file_paths" | /usr/bin/grep -c .)
+        if [ "$file_count" -lt 2 ]; then
+            "$alert_tool" --level caution --title "QuickPDF" \
+                "Merge needs at least 2 files in the list."
+            exit 0
+        fi
+        "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "QuickPDF.run.merge"
+        ;;
     *)
         "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "QuickPDF.run.batch"
         ;;

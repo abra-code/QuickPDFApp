@@ -21,7 +21,7 @@ operation="$OMC_ACTIONUI_VIEW_60_VALUE"
 
 overwrite="$OMC_ACTIONUI_VIEW_14_VALUE"
 
-# Fill QPDF_ARGS / QPDF_LINEARIZE from the UI
+# Fill QPDF_ARGS / QPDF_POST_ARGS / QPDF_LINEARIZE from the UI
 build_qpdf_args "$operation"
 
 IFS=$'\n' read -r -d '' -a files <<< "$file_paths" || true
@@ -35,7 +35,7 @@ details=""
 # Run one qpdf pass: run_qpdf input output
 # Echoes qpdf stderr/stdout; returns the qpdf exit code.
 run_qpdf() {
-    "$QPDF" "${QPDF_ARGS[@]}" "$1" "$2" 2>&1
+    "$QPDF" "${QPDF_ARGS[@]}" "$1" "${QPDF_POST_ARGS[@]}" "$2" 2>&1
 }
 
 set_summary "Running ${operation} on ${#files[@]} file(s)…"
@@ -49,6 +49,43 @@ for file_path in "${files[@]}"; do
         error_count=$((error_count + 1))
         details="${details}
 ✗ ${filename}: file does not exist"
+        continue
+    fi
+
+    # Split is 1:N - parts go into a destination subfolder named after the file
+    if [ "$operation" = "split" ]; then
+        name_no_ext="${filename%.*}"
+        subdir="$destination/$name_no_ext"
+
+        if [ -e "$subdir" ] && [ "$overwrite" != "true" ]; then
+            skipped_count=$((skipped_count + 1))
+            details="${details}
+- ${filename}: skipped (folder ${name_no_ext}/ already exists)"
+            continue
+        fi
+
+        /bin/mkdir -p "$subdir"
+        # qpdf inserts the page-group number before the .pdf extension
+        output="$("$QPDF" "${QPDF_ARGS[@]}" "$file_path" "$subdir/${name_no_ext}.pdf" 2>&1)"
+        exit_code=$?
+
+        if [ $exit_code -eq 0 ] || [ $exit_code -eq 3 ]; then
+            part_count="$(/bin/ls "$subdir" 2>/dev/null | /usr/bin/grep -c '\.pdf$')"
+            if [ $exit_code -eq 3 ]; then
+                warn_count=$((warn_count + 1))
+                details="${details}
+⚠ ${filename}: split into ${part_count} part(s) → ${name_no_ext}/ (with warnings)"
+            else
+                success_count=$((success_count + 1))
+                details="${details}
+✓ ${filename}: split into ${part_count} part(s) → ${name_no_ext}/"
+            fi
+        else
+            error_count=$((error_count + 1))
+            err_line="$(printf '%s' "$output" | /usr/bin/head -1 | /usr/bin/sed 's/^qpdf: //')"
+            details="${details}
+✗ ${filename}: ${err_line:-failed (exit $exit_code)}"
+        fi
         continue
     fi
 
