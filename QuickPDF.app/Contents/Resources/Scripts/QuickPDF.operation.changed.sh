@@ -11,7 +11,8 @@ show_group() {
     local gid
     for gid in ${GROUP_OPTIMIZE_ID} ${GROUP_ENCRYPT_ID} ${GROUP_DECRYPT_ID} \
                ${GROUP_INSPECT_ID} ${GROUP_ROTATE_ID} ${GROUP_EXTRACT_ID} \
-               ${GROUP_SPLIT_ID} ${GROUP_MERGE_ID}; do
+               ${GROUP_SPLIT_ID} ${GROUP_MERGE_ID} ${GROUP_REPAIR_ID} \
+               ${GROUP_METADATA_ID} ${GROUP_FLATTEN_ID}; do
         if [ "$gid" = "$visible_id" ]; then
             "$dialog_tool" "$window_uuid" "$gid" omc_show
         else
@@ -28,6 +29,9 @@ case "$operation" in
     extract)  show_group ${GROUP_EXTRACT_ID} ;;
     split)    show_group ${GROUP_SPLIT_ID} ;;
     merge)    show_group ${GROUP_MERGE_ID} ;;
+    repair)   show_group ${GROUP_REPAIR_ID} ;;
+    metadata) show_group ${GROUP_METADATA_ID} ;;
+    flatten)  show_group ${GROUP_FLATTEN_ID} ;;
     inspect)  show_group ${GROUP_INSPECT_ID} ;;
 esac
 

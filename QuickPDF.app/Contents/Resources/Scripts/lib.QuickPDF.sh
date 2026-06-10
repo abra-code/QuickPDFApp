@@ -52,6 +52,20 @@ SPLIT_CHUNK_FIELD_ID=150
 # Inspect controls
 INSPECT_MODE_PICKER_ID=170
 
+# Repair controls
+REPAIR_COALESCE_ID=180
+
+# Remove-metadata controls
+META_XMP_ID=190
+META_INFO_ID=191
+META_STRUCTURE_ID=192
+META_PAGE_LABELS_ID=193
+
+# Flatten controls
+FLATTEN_MODE_PICKER_ID=195
+FLATTEN_APPEARANCES_ID=196
+FLATTEN_ROTATION_ID=197
+
 # Operation GroupBox IDs (ZStack panel switcher)
 GROUP_OPTIMIZE_ID=200
 GROUP_ENCRYPT_ID=210
@@ -61,6 +75,9 @@ GROUP_ROTATE_ID=240
 GROUP_EXTRACT_ID=250
 GROUP_SPLIT_ID=260
 GROUP_MERGE_ID=270
+GROUP_REPAIR_ID=280
+GROUP_METADATA_ID=290
+GROUP_FLATTEN_ID=300
 
 RUN_BUTTON_ID=90
 
@@ -262,6 +279,33 @@ build_qpdf_args() {
                 '' | *[!0-9]* | 0) chunk=1 ;;
             esac
             QPDF_ARGS+=("--split-pages=$chunk")
+            ;;
+
+        repair)
+            # A plain in -> out pass already rebuilds the file structure
+            if [ "$OMC_ACTIONUI_VIEW_180_VALUE" = "true" ]; then
+                QPDF_ARGS+=(--coalesce-contents)
+            fi
+            ;;
+
+        metadata)
+            [ "$OMC_ACTIONUI_VIEW_190_VALUE" = "true" ] && QPDF_ARGS+=(--remove-metadata)
+            [ "$OMC_ACTIONUI_VIEW_191_VALUE" = "true" ] && QPDF_ARGS+=(--remove-info)
+            [ "$OMC_ACTIONUI_VIEW_192_VALUE" = "true" ] && QPDF_ARGS+=(--remove-structure)
+            [ "$OMC_ACTIONUI_VIEW_193_VALUE" = "true" ] && QPDF_ARGS+=(--remove-page-labels)
+            ;;
+
+        flatten)
+            local fmode="$OMC_ACTIONUI_VIEW_195_VALUE"
+            [ -z "$fmode" ] && fmode="all"
+            # Appearance regeneration must happen before flattening
+            if [ "$OMC_ACTIONUI_VIEW_196_VALUE" = "true" ]; then
+                QPDF_ARGS+=(--generate-appearances)
+            fi
+            QPDF_ARGS+=("--flatten-annotations=$fmode")
+            if [ "$OMC_ACTIONUI_VIEW_197_VALUE" = "true" ]; then
+                QPDF_ARGS+=(--flatten-rotation)
+            fi
             ;;
     esac
 }

@@ -140,6 +140,9 @@
                 { "title": "Extract / Reorder pages", "tag": "extract" },
                 { "title": "Split into smaller PDFs", "tag": "split" },
                 { "title": "Merge into one PDF", "tag": "merge" },
+                { "title": "Repair / Rebuild", "tag": "repair" },
+                { "title": "Remove metadata", "tag": "metadata" },
+                { "title": "Flatten forms & annotations", "tag": "flatten" },
                 { "title": "Inspect (read-only)", "tag": "inspect" }
               ],
               "actionID": "QuickPDF.operation.changed"
@@ -438,6 +441,93 @@
                       { "type": "TextField", "id": 141, "properties": { "prompt": "all — or e.g. 1-z, applied to each file", "frame": { "width": 280 } } }
                     ]
                   },
+                  { "type": "Divider", "properties": { "opacity": 0, "frame": { "height": 0 } } }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 280,
+            "properties": {
+              "title": "Repair / Rebuild",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 12, "alignment": "leading", "padding": "default" },
+                "children": [
+                  { "type": "Text", "properties": { "text": "Rewrites the PDF from scratch, recovering from cross-reference and structural damage where possible. Warnings are reported per file." } },
+                  { "type": "Toggle", "id": 180, "properties": { "title": "Coalesce content streams (merge per-page stream arrays)", "style": "checkbox" } },
+                  { "type": "Divider", "properties": { "opacity": 0, "frame": { "height": 0 } } }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 290,
+            "properties": {
+              "title": "Remove Metadata",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 12, "alignment": "leading", "padding": "default" },
+                "children": [
+                  { "type": "Toggle", "id": 190, "properties": { "title": "XMP metadata (author, producer, history…)", "isOn": true, "style": "checkbox" } },
+                  { "type": "Toggle", "id": 191, "properties": { "title": "Document info dictionary (title, author, keywords)", "isOn": true, "style": "checkbox" } },
+                  { "type": "Toggle", "id": 192, "properties": { "title": "Structure tree (tagged-PDF accessibility data)", "style": "checkbox" } },
+                  { "type": "Toggle", "id": 193, "properties": { "title": "Page labels (explicit page numbering)", "style": "checkbox" } },
+                  { "type": "Divider", "properties": { "opacity": 0, "frame": { "height": 0 } } }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 300,
+            "properties": {
+              "title": "Flatten",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 12, "alignment": "leading", "padding": "default" },
+                "children": [
+                  { "type": "Text", "properties": { "text": "Pushes annotations and form fields into the page contents so they print and display everywhere, but are no longer editable." } },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 195,
+                        "properties": {
+                          "title": "Flatten",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 280 },
+                          "options": [
+                            { "title": "All annotations", "tag": "all" },
+                            { "title": "Print-visible only", "tag": "print" },
+                            { "title": "Screen-visible only", "tag": "screen" }
+                          ]
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  { "type": "Toggle", "id": 196, "properties": { "title": "Regenerate stale form-field appearances first", "isOn": true, "style": "checkbox" } },
+                  { "type": "Toggle", "id": 197, "properties": { "title": "Bake page rotation into contents (fix broken viewers)", "style": "checkbox" } },
                   { "type": "Divider", "properties": { "opacity": 0, "frame": { "height": 0 } } }
                 ]
               }
