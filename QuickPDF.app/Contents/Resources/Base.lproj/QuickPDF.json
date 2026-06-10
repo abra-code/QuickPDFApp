@@ -1,0 +1,379 @@
+{
+  "type": "NavigationSplitView",
+  "id": 100,
+  "properties": {
+    "columnVisibility": "all",
+    "style": "balanced",
+    "frame": {
+      "minWidth": 820,
+      "minHeight": 640
+    },
+    "padding": {
+      "top": 4
+    }
+  },
+  "sidebar": {
+    "type": "VStack",
+    "properties": {
+      "spacing": 8,
+      "navigationSplitViewColumnWidth": {
+        "min": 220,
+        "ideal": 280,
+        "max": 320
+      }
+    },
+    "children": [
+      {
+        "type": "Table",
+        "id": 10,
+        "properties": {
+          "columns": ["PDF Files"],
+          "widths": [230],
+          "actionID": "QuickPDF.files.selection.changed",
+          "doubleClickActionID": "QuickPDF.files.double.click",
+          "onDropTypes": ["public.file-url", "public.folder"],
+          "onDropActionID": "QuickPDF.files.drop"
+        }
+      },
+      {
+        "type": "HStack",
+        "properties": {
+          "spacing": 0
+        },
+        "children": [
+          {
+            "type": "Button",
+            "id": 101,
+            "properties": {
+              "systemImage": "plus.circle",
+              "imageScale": "large",
+              "buttonStyle": "plain",
+              "actionID": "QuickPDF.add.files",
+              "frame": { "width": 32, "height": 32 }
+            }
+          },
+          {
+            "type": "Button",
+            "id": 102,
+            "properties": {
+              "systemImage": "minus.circle",
+              "imageScale": "large",
+              "buttonStyle": "plain",
+              "actionID": "QuickPDF.remove.selected",
+              "disabled": true,
+              "frame": { "width": 32, "height": 32 }
+            }
+          },
+          {
+            "type": "Divider",
+            "properties": {
+              "padding": { "top": 0, "leading": 8, "bottom": 0, "trailing": 8 },
+              "frame": { "height": 16 }
+            }
+          },
+          {
+            "type": "Button",
+            "id": 104,
+            "properties": {
+              "systemImage": "finder",
+              "imageScale": "medium",
+              "buttonStyle": "plain",
+              "actionID": "QuickPDF.reveal.in.finder",
+              "disabled": true,
+              "frame": { "width": 32, "height": 32 }
+            }
+          },
+          {
+            "type": "Button",
+            "id": 106,
+            "properties": {
+              "systemImage": "info.circle",
+              "imageScale": "medium",
+              "buttonStyle": "plain",
+              "actionID": "QuickPDF.info",
+              "disabled": true,
+              "frame": { "width": 32, "height": 32 }
+            }
+          },
+          {
+            "type": "Spacer"
+          },
+          {
+            "type": "Button",
+            "id": 103,
+            "properties": {
+              "systemImage": "trash.circle",
+              "imageScale": "large",
+              "buttonStyle": "plain",
+              "actionID": "QuickPDF.clear.all",
+              "frame": { "width": 32, "height": 32 }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "detail": {
+    "type": "VStack",
+    "properties": {
+      "spacing": 12,
+      "alignment": "leading",
+      "frame": { "minWidth": 460, "idealWidth": 520 },
+      "padding": { "leading": 8, "trailing": 8 }
+    },
+    "children": [
+      {
+        "type": "HStack",
+        "properties": { "spacing": 12 },
+        "children": [
+          {
+            "type": "Picker",
+            "id": 60,
+            "properties": {
+              "title": "What do you want to do?",
+              "pickerStyle": "menu",
+              "options": [
+                { "title": "Optimize (smaller / web-ready)", "tag": "optimize" },
+                { "title": "Encrypt (set passwords)", "tag": "encrypt" },
+                { "title": "Decrypt / Unlock", "tag": "decrypt" },
+                { "title": "Inspect (read-only)", "tag": "inspect" }
+              ],
+              "actionID": "QuickPDF.operation.changed"
+            }
+          },
+          { "type": "Spacer" }
+        ]
+      },
+      {
+        "type": "ZStack",
+        "id": 199,
+        "properties": { "alignment": "top" },
+        "children": [
+          {
+            "type": "GroupBox",
+            "id": 200,
+            "properties": {
+              "title": "Optimize",
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 12, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      { "type": "Toggle", "id": 72, "properties": { "title": "Recompress images, JPEG quality:", "isOn": true, "style": "checkbox" } },
+                      { "type": "TextField", "id": 73, "properties": { "text": "85", "format": "integer", "frame": { "width": 50 } } }
+                    ]
+                  },
+                  { "type": "Toggle", "id": 71, "properties": { "title": "Lossless stream compression", "isOn": true, "style": "checkbox" } },
+                  { "type": "Toggle", "id": 75, "properties": { "title": "Remove unreferenced resources", "isOn": true, "style": "checkbox" } },
+                  { "type": "Toggle", "id": 70, "properties": { "title": "Linearize for fast web view (kept only if not larger)", "isOn": true, "style": "checkbox" } },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 74,
+                        "properties": {
+                          "title": "Object streams",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 240 },
+                          "options": [
+                            { "title": "Generate (smallest)", "tag": "generate" },
+                            { "title": "Preserve", "tag": "preserve" },
+                            { "title": "Disable (most compatible)", "tag": "disable" }
+                          ]
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  { "type": "Divider", "properties": { "opacity": 0, "frame": { "height": 0 } } }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 210,
+            "properties": {
+              "title": "Encrypt",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 12, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      { "type": "Text", "properties": { "text": "User password", "frame": { "width": 120, "alignment": "trailing" } } },
+                      { "type": "SecureField", "id": 110, "properties": { "prompt": "required to open the PDF" } }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      { "type": "Text", "properties": { "text": "Owner password", "frame": { "width": 120, "alignment": "trailing" } } },
+                      { "type": "SecureField", "id": 111, "properties": { "prompt": "full access (defaults to user password)" } }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 112,
+                        "properties": {
+                          "title": "Key length",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 240 },
+                          "options": [
+                            { "title": "256-bit AES (recommended)", "tag": "256" },
+                            { "title": "128-bit AES (legacy)", "tag": "128" },
+                            { "title": "40-bit RC4 (obsolete)", "tag": "40" }
+                          ],
+                          "actionID": "QuickPDF.encrypt.bits.changed"
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  {
+                    "type": "Text",
+                    "id": 118,
+                    "properties": {
+                      "text": "⚠ Weak encryption — easily broken; use 256-bit unless an old reader requires it.",
+                      "foregroundStyle": "orange",
+                      "font": "caption",
+                      "hidden": true
+                    }
+                  },
+                  { "type": "Divider" },
+                  { "type": "Text", "properties": { "text": "Allow users without the owner password to:", "foregroundStyle": "secondary", "font": "caption" } },
+                  { "type": "Toggle", "id": 113, "properties": { "title": "Print", "isOn": true, "style": "checkbox" } },
+                  { "type": "Toggle", "id": 114, "properties": { "title": "Modify the document", "style": "checkbox" } },
+                  { "type": "Toggle", "id": 115, "properties": { "title": "Copy / extract content", "isOn": true, "style": "checkbox" } },
+                  { "type": "Toggle", "id": 116, "properties": { "title": "Annotate and fill forms", "isOn": true, "style": "checkbox" } },
+                  { "type": "Divider", "properties": { "opacity": 0, "frame": { "height": 0 } } }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 220,
+            "properties": {
+              "title": "Decrypt / Unlock",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 12, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      { "type": "Text", "properties": { "text": "Password", "frame": { "width": 120, "alignment": "trailing" } } },
+                      { "type": "SecureField", "id": 120, "properties": { "prompt": "current password (if the PDF is locked)" } }
+                    ]
+                  },
+                  { "type": "Toggle", "id": 121, "properties": { "title": "Remove restrictions only (keep file readable as-is)", "style": "checkbox" } },
+                  { "type": "Text", "properties": { "text": "Removes encryption and produces an unlocked copy. \"Remove restrictions only\" strips owner-level limits (printing, copying) without requiring the owner password.", "foregroundStyle": "secondary", "font": "caption" } },
+                  { "type": "Divider", "properties": { "opacity": 0, "frame": { "height": 0 } } }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "GroupBox",
+            "id": 230,
+            "properties": {
+              "title": "Inspect",
+              "hidden": true,
+              "padding": "default",
+              "frame": { "minWidth": 440, "maxWidth": 99999 }
+            },
+            "children": [
+              {
+                "type": "VStack",
+                "properties": { "spacing": 12, "alignment": "leading", "padding": "default" },
+                "children": [
+                  {
+                    "type": "HStack",
+                    "properties": { "spacing": 8 },
+                    "children": [
+                      {
+                        "type": "Picker",
+                        "id": 170,
+                        "properties": {
+                          "title": "Show",
+                          "pickerStyle": "menu",
+                          "frame": { "width": 280 },
+                          "options": [
+                            { "title": "Check (structure & integrity)", "tag": "check" },
+                            { "title": "Number of pages", "tag": "pages" },
+                            { "title": "Encryption details", "tag": "encryption" },
+                            { "title": "Full JSON dump", "tag": "json" }
+                          ]
+                        }
+                      },
+                      { "type": "Spacer" }
+                    ]
+                  },
+                  { "type": "Text", "properties": { "text": "Read-only: results open in an output window. No files are written.", "foregroundStyle": "secondary", "font": "caption" } },
+                  { "type": "Divider", "properties": { "opacity": 0, "frame": { "height": 0 } } }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "GroupBox",
+        "properties": {
+          "title": "Summary",
+          "padding": "default",
+          "frame": { "minWidth": 440, "maxWidth": 99999, "minHeight": 140, "maxHeight": 99999 }
+        },
+        "children": [
+          {
+            "type": "TextEditor",
+            "id": 12,
+            "properties": {
+              "readOnly": true,
+              "font": { "size": 11, "design": "monospaced" },
+              "scrollContentBackground": "hidden",
+              "frame": { "minHeight": 120, "maxWidth": 99999, "maxHeight": 99999 }
+            }
+          }
+        ]
+      },
+      {
+        "type": "HStack",
+        "properties": { "spacing": 12, "padding": "default" },
+        "children": [
+          { "type": "Toggle", "id": 14, "properties": { "title": "Overwrite existing files" } },
+          { "type": "Spacer" },
+          { "type": "Button", "id": 90, "properties": { "title": "Run", "buttonStyle": "borderedProminent", "actionID": "QuickPDF.start.batch" } }
+        ]
+      }
+    ]
+  }
+}

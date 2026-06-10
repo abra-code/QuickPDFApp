@@ -1,0 +1,7 @@
+# QuickPDF.app
+QuickPDF.app/Contents/Frameworks/
+QuickPDF.app/Contents/MacOS/
+QuickPDF.app/Contents/Helpers/
+QuickPDF.app/Contents/_CodeSignature/
+.DS_Store
+Private/

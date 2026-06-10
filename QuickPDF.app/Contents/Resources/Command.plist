@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>COMMAND_LIST</key>
+	<array>
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>ACTIVATION_MODE</key>
+			<string>act_file_or_folder</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+			<key>ACTIONUI_WINDOW</key>
+			<dict>
+				<key>JSON_NAME</key>
+				<string>QuickPDF</string>
+				<key>INIT_SUBCOMMAND_ID</key>
+				<string>QuickPDF.init</string>
+				<key>END_CANCEL_SUBCOMMAND_ID</key>
+				<string>QuickPDF.cancel</string>
+				<key>IS_BLOCKING</key>
+				<false/>
+			</dict>
+			<key>MULTIPLE_OBJECT_SETTINGS</key>
+			<dict>
+				<key>PROCESSING_MODE</key>
+				<string>proc_together</string>
+				<key>SEPARATOR</key>
+				<string>\n</string>
+				<key>SORT_METHOD</key>
+				<string>sort_by_name</string>
+			</dict>
+			<key>REQUIRED_OMC_VERSION</key>
+			<string>5.0</string>
+			<key>REQUIRED_MAC_OS_MIN_VERSION</key>
+			<string>14.6</string>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.init</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.files.selection.changed</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.add.files</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+			<key>CHOOSE_OBJECT_DIALOG</key>
+			<dict>
+				<key>MESSAGE</key>
+				<string>Select PDF files to add</string>
+				<key>ALLOW_MULTIPLE_ITEMS</key>
+				<true/>
+				<key>USE_PATH_CACHING</key>
+				<false/>
+			</dict>
+			<key>ENVIRONMENT_VARIABLES</key>
+			<dict>
+				<key>OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS</key>
+				<string></string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.files.drop</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+			<key>ENVIRONMENT_VARIABLES</key>
+			<dict>
+				<key>OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS</key>
+				<string></string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.remove.selected</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+			<key>ENVIRONMENT_VARIABLES</key>
+			<dict>
+				<key>OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS</key>
+				<string></string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.clear.all</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.files.double.click</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.reveal.in.finder</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.info</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file_with_output_window</string>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.operation.changed</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.encrypt.bits.changed</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.start.batch</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+			<key>ENVIRONMENT_VARIABLES</key>
+			<dict>
+				<key>OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS</key>
+				<string></string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.run.batch</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+			<key>CHOOSE_FOLDER_DIALOG</key>
+			<dict>
+				<key>MESSAGE</key>
+				<string>Select destination folder</string>
+				<key>BUTTON_PROMPT</key>
+				<string>Run</string>
+			</dict>
+			<key>ENVIRONMENT_VARIABLES</key>
+			<dict>
+				<key>OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS</key>
+				<string></string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.inspect.run</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file_with_output_window</string>
+			<key>ENVIRONMENT_VARIABLES</key>
+			<dict>
+				<key>OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS</key>
+				<string></string>
+			</dict>
+		</dict>
+
+		<dict>
+			<key>NAME</key>
+			<string>QuickPDF</string>
+			<key>COMMAND_ID</key>
+			<string>QuickPDF.cancel</string>
+			<key>EXECUTION_MODE</key>
+			<string>exe_script_file</string>
+		</dict>
+	</array>
+	<key>VERSION</key>
+	<integer>2</integer>
+</dict>
+</plist>

@@ -1,0 +1,127 @@
+#!/bin/bash
+# QuickPDF.run.batch.sh - Apply the chosen operation to every file in the list
+#
+# Reached via QuickPDF.start.batch. CHOOSE_FOLDER_DIALOG has already asked
+# for the destination folder (OMC_DLG_CHOOSE_FOLDER_PATH).
+
+source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.QuickPDF.sh"
+
+destination="$OMC_DLG_CHOOSE_FOLDER_PATH"
+if [ -z "$destination" ]; then
+    exit 0
+fi
+
+file_paths="$OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS"
+if [ -z "$file_paths" ]; then
+    exit 0
+fi
+
+operation="$OMC_ACTIONUI_VIEW_60_VALUE"
+[ -z "$operation" ] && operation="optimize"
+
+overwrite="$OMC_ACTIONUI_VIEW_14_VALUE"
+
+# Fill QPDF_ARGS / QPDF_LINEARIZE from the UI
+build_qpdf_args "$operation"
+
+IFS=$'\n' read -r -d '' -a files <<< "$file_paths" || true
+
+success_count=0
+warn_count=0
+error_count=0
+skipped_count=0
+details=""
+
+# Run one qpdf pass: run_qpdf input output
+# Echoes qpdf stderr/stdout; returns the qpdf exit code.
+run_qpdf() {
+    "$QPDF" "${QPDF_ARGS[@]}" "$1" "$2" 2>&1
+}
+
+set_summary "Running ${operation} on ${#files[@]} file(s)…"
+
+for file_path in "${files[@]}"; do
+    [ -z "$file_path" ] && continue
+
+    filename="$(/usr/bin/basename "$file_path")"
+
+    if [ ! -e "$file_path" ]; then
+        error_count=$((error_count + 1))
+        details="${details}
+✗ ${filename}: file does not exist"
+        continue
+    fi
+
+    output_file="$destination/$filename"
+
+    if [ -e "$output_file" ] && [ "$overwrite" != "true" ]; then
+        skipped_count=$((skipped_count + 1))
+        details="${details}
+- ${filename}: skipped (already exists)"
+        continue
+    fi
+
+    # qpdf refuses identical input and output paths - always write to a temp
+    # file in the destination folder, then move into place.
+    tmp_out="$(/usr/bin/mktemp "$destination/.quickpdf.XXXXXX")"
+
+    if [ "$operation" = "optimize" ] && [ "$QPDF_LINEARIZE" = "1" ]; then
+        # Two passes: keep the linearized result only if it isn't larger
+        output="$(run_qpdf "$file_path" "$tmp_out")"
+        exit_code=$?
+        if [ $exit_code -ne 2 ]; then
+            tmp_linear="$(/usr/bin/mktemp "$destination/.quickpdf.XXXXXX")"
+            QPDF_ARGS+=(--linearize)
+            lin_output="$(run_qpdf "$file_path" "$tmp_linear")"
+            lin_exit=$?
+            # Restore args for the next file
+            unset 'QPDF_ARGS[${#QPDF_ARGS[@]}-1]'
+            if [ $lin_exit -ne 2 ]; then
+                plain_size="$(/usr/bin/stat -f %z "$tmp_out")"
+                linear_size="$(/usr/bin/stat -f %z "$tmp_linear")"
+                if [ "$linear_size" -le "$plain_size" ]; then
+                    /bin/mv -f "$tmp_linear" "$tmp_out"
+                else
+                    /bin/rm -f "$tmp_linear"
+                fi
+            else
+                /bin/rm -f "$tmp_linear"
+            fi
+        fi
+    else
+        output="$(run_qpdf "$file_path" "$tmp_out")"
+        exit_code=$?
+    fi
+
+    if [ $exit_code -eq 0 ] || [ $exit_code -eq 3 ]; then
+        # mktemp creates 0600 files - give the result normal permissions
+        /bin/chmod 644 "$tmp_out"
+        /bin/mv -f "$tmp_out" "$output_file"
+        orig_size="$(/usr/bin/stat -f %z "$file_path")"
+        new_size="$(/usr/bin/stat -f %z "$output_file")"
+        if [ $exit_code -eq 3 ]; then
+            warn_count=$((warn_count + 1))
+            details="${details}
+⚠ ${filename}: $(format_size "$orig_size") → $(format_size "$new_size") (with warnings)"
+        else
+            success_count=$((success_count + 1))
+            details="${details}
+✓ ${filename}: $(format_size "$orig_size") → $(format_size "$new_size")"
+        fi
+    else
+        /bin/rm -f "$tmp_out"
+        error_count=$((error_count + 1))
+        # First line of qpdf's message, without the leading "qpdf: " prefix
+        err_line="$(printf '%s' "$output" | /usr/bin/head -1 | /usr/bin/sed 's/^qpdf: //')"
+        details="${details}
+✗ ${filename}: ${err_line:-failed (exit $exit_code)}"
+    fi
+done
+
+summary="Operation: ${operation}
+Destination: ${destination}
+
+${success_count} succeeded · ${warn_count} with warnings · ${skipped_count} skipped · ${error_count} failed
+${details}"
+
+set_summary "$summary"
