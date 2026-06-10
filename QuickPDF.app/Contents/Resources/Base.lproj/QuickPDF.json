@@ -578,6 +578,27 @@
         ]
       },
       {
+        "type": "DisclosureGroup",
+        "properties": { "title": "Advanced", "padding": { "leading": 4, "trailing": 4 } },
+        "children": [
+          {
+            "type": "VStack",
+            "properties": { "spacing": 6, "alignment": "leading", "padding": { "top": 4 } },
+            "children": [
+              {
+                "type": "HStack",
+                "properties": { "spacing": 8 },
+                "children": [
+                  { "type": "Text", "properties": { "text": "Extra qpdf flags" } },
+                  { "type": "TextField", "id": 160, "properties": { "prompt": "e.g. --deterministic-id --force-version=1.7", "frame": { "maxWidth": 99999 } } }
+                ]
+              },
+              { "type": "Text", "properties": { "text": "Appended verbatim (space-separated, no quoting) to every file-writing operation except Merge.", "foregroundStyle": "secondary", "font": "caption" } }
+            ]
+          }
+        ]
+      },
+      {
         "type": "GroupBox",
         "properties": {
           "title": "Summary",
