@@ -50,7 +50,8 @@
               "imageScale": "large",
               "buttonStyle": "plain",
               "actionID": "QuickPDF.add.files",
-              "frame": { "width": 32, "height": 32 }
+              "frame": { "width": 32, "height": 32 },
+              "help": "Add PDF files or folders"
             }
           },
           {
@@ -62,7 +63,8 @@
               "buttonStyle": "plain",
               "actionID": "QuickPDF.remove.selected",
               "disabled": true,
-              "frame": { "width": 32, "height": 32 }
+              "frame": { "width": 32, "height": 32 },
+              "help": "Remove selected file from the list"
             }
           },
           {
@@ -74,6 +76,19 @@
           },
           {
             "type": "Button",
+            "id": 105,
+            "properties": {
+              "systemImage": "eye",
+              "imageScale": "medium",
+              "buttonStyle": "plain",
+              "actionID": "QuickPDF.quicklook",
+              "disabled": true,
+              "frame": { "width": 32, "height": 32 },
+              "help": "Preview with Quick Look"
+            }
+          },
+          {
+            "type": "Button",
             "id": 104,
             "properties": {
               "systemImage": "finder",
@@ -81,7 +96,8 @@
               "buttonStyle": "plain",
               "actionID": "QuickPDF.reveal.in.finder",
               "disabled": true,
-              "frame": { "width": 32, "height": 32 }
+              "frame": { "width": 32, "height": 32 },
+              "help": "Reveal in Finder"
             }
           },
           {
@@ -93,7 +109,8 @@
               "buttonStyle": "plain",
               "actionID": "QuickPDF.info",
               "disabled": true,
-              "frame": { "width": 32, "height": 32 }
+              "frame": { "width": 32, "height": 32 },
+              "help": "Show file details"
             }
           },
           {
@@ -107,7 +124,8 @@
               "imageScale": "large",
               "buttonStyle": "plain",
               "actionID": "QuickPDF.clear.all",
-              "frame": { "width": 32, "height": 32 }
+              "frame": { "width": 32, "height": 32 },
+              "help": "Clear the list"
             }
           }
         ]
@@ -134,17 +152,17 @@
               "title": "What do you want to do?",
               "pickerStyle": "menu",
               "options": [
-                { "title": "Optimize (smaller / web-ready)", "tag": "optimize" },
-                { "title": "Encrypt (set passwords)", "tag": "encrypt" },
-                { "title": "Decrypt / Unlock", "tag": "decrypt" },
-                { "title": "Rotate pages", "tag": "rotate" },
-                { "title": "Extract / Reorder pages", "tag": "extract" },
-                { "title": "Split into smaller PDFs", "tag": "split" },
-                { "title": "Merge into one PDF", "tag": "merge" },
-                { "title": "Repair / Rebuild", "tag": "repair" },
-                { "title": "Remove metadata", "tag": "metadata" },
-                { "title": "Flatten forms & annotations", "tag": "flatten" },
-                { "title": "Inspect (read-only)", "tag": "inspect" }
+                { "title": "Optimize", "tag": "optimize" },
+                { "title": "Split", "tag": "split" },
+                { "title": "Extract Pages", "tag": "extract" },
+                { "title": "Merge", "tag": "merge" },
+                { "title": "Set Password", "tag": "encrypt" },
+                { "title": "Decrypt", "tag": "decrypt" },
+                { "title": "Rotate Pages", "tag": "rotate" },
+                { "title": "Repair", "tag": "repair" },
+                { "title": "Remove Metadata", "tag": "metadata" },
+                { "title": "Flatten", "tag": "flatten" },
+                { "title": "Inspect", "tag": "inspect" }
               ],
               "actionID": "QuickPDF.operation.changed"
             }
@@ -191,7 +209,6 @@
                         "properties": {
                           "title": "Object streams",
                           "pickerStyle": "menu",
-                          "frame": { "width": 240 },
                           "options": [
                             { "title": "Generate (smallest)", "tag": "generate" },
                             { "title": "Preserve", "tag": "preserve" },
@@ -245,9 +262,8 @@
                         "type": "Picker",
                         "id": 112,
                         "properties": {
-                          "title": "Key length",
+                          "title": "Encryption Strength",
                           "pickerStyle": "menu",
-                          "frame": { "width": 240 },
                           "options": [
                             { "title": "256-bit AES (recommended)", "tag": "256" },
                             { "title": "128-bit AES (legacy)", "tag": "128" },
@@ -284,7 +300,7 @@
             "type": "GroupBox",
             "id": 220,
             "properties": {
-              "title": "Decrypt / Unlock",
+              "title": "Decrypt",
               "hidden": true,
               "padding": "default",
               "frame": { "minWidth": 440, "maxWidth": 99999 }
@@ -367,7 +383,7 @@
             "type": "GroupBox",
             "id": 250,
             "properties": {
-              "title": "Extract / Reorder",
+              "title": "Extract or Reorder",
               "hidden": true,
               "padding": "default",
               "frame": { "minWidth": 440, "maxWidth": 99999 }
@@ -451,7 +467,7 @@
             "type": "GroupBox",
             "id": 280,
             "properties": {
-              "title": "Repair / Rebuild",
+              "title": "Repair or Rebuild",
               "hidden": true,
               "padding": "default",
               "frame": { "minWidth": 440, "maxWidth": 99999 }
@@ -558,12 +574,9 @@
                         "properties": {
                           "title": "Show",
                           "pickerStyle": "menu",
-                          "frame": { "width": 280 },
                           "options": [
-                            { "title": "Check (structure & integrity)", "tag": "check" },
-                            { "title": "Number of pages", "tag": "pages" },
-                            { "title": "Encryption details", "tag": "encryption" },
-                            { "title": "Full JSON dump", "tag": "json" }
+                            { "title": "Basic properties", "tag": "basic" },
+                            { "title": "Full details (JSON)", "tag": "json" }
                           ]
                         }
                       },

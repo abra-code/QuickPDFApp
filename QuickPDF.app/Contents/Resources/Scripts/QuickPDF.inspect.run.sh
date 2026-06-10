@@ -10,7 +10,7 @@ if [ -z "$file_paths" ]; then
 fi
 
 mode="$OMC_ACTIONUI_VIEW_170_VALUE"
-[ -z "$mode" ] && mode="check"
+[ -z "$mode" ] && mode="basic"
 
 IFS=$'\n' read -r -d '' -a files <<< "$file_paths" || true
 
@@ -28,15 +28,14 @@ for file_path in "${files[@]}"; do
     fi
 
     case "$mode" in
-        check)
-            "$QPDF" --check "$file_path" 2>&1
-            ;;
-        pages)
+        basic)
             npages="$("$QPDF" --show-npages "$file_path" 2>&1)"
             echo "Pages: $npages"
-            ;;
-        encryption)
+            echo ""
+            echo "Encryption:"
             "$QPDF" --show-encryption "$file_path" 2>&1
+            echo ""
+            "$QPDF" --check "$file_path" 2>&1
             ;;
         json)
             "$QPDF" --json "$file_path" 2>&1

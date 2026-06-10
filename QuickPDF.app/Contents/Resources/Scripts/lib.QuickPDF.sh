@@ -10,6 +10,7 @@ SUMMARY_VIEW_ID=12
 OVERWRITE_TOGGLE_ID=14
 REMOVE_BUTTON_ID=102
 REVEAL_BUTTON_ID=104
+PREVIEW_BUTTON_ID=105
 INFO_BUTTON_ID=106
 
 OPERATION_PICKER_ID=60
@@ -85,7 +86,12 @@ RUN_BUTTON_ID=90
 dialog_tool="$OMC_OMC_SUPPORT_PATH/omc_dialog_control"
 next_cmd="$OMC_OMC_SUPPORT_PATH/omc_next_command"
 alert_tool="$OMC_OMC_SUPPORT_PATH/alert"
+pasteboard_tool="$OMC_OMC_SUPPORT_PATH/pasteboard"
 window_uuid="$OMC_ACTIONUI_WINDOW_UUID"
+
+# Private pasteboard key: hands off the Open panel selection to the new
+# window's init script
+OPEN_PATHS_PB_KEY="QUICKPDF_OPEN_PATHS"
 
 # Set the Summary text view content
 # Arguments: text

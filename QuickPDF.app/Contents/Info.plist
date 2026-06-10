@@ -7,16 +7,28 @@
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>*</string>
-			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>****</string>
-			</array>
+			<key>CFBundleTypeName</key>
+			<string>PDF Document</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>None</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Folder</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>None</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.folder</string>
+			</array>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
@@ -26,7 +38,7 @@
 	<key>CFBundleIconName</key>
 	<string>QuickPDF</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.abracode.actionui.quickpdf</string>
+	<string>com.abracode.quickpdf</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -43,7 +55,6 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>quickpdf</string>
-				<string>actionui-window</string>
 			</array>
 		</dict>
 	</array>

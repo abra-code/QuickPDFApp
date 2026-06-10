@@ -9,6 +9,7 @@ selected_path="$OMC_ACTIONUI_TABLE_10_COLUMN_2_VALUE"
 if [ -n "$selected_path" ]; then
     "$dialog_tool" "$window_uuid" ${REMOVE_BUTTON_ID} omc_enable
     "$dialog_tool" "$window_uuid" ${REVEAL_BUTTON_ID} omc_enable
+    "$dialog_tool" "$window_uuid" ${PREVIEW_BUTTON_ID} omc_enable
     "$dialog_tool" "$window_uuid" ${INFO_BUTTON_ID} omc_enable
 
     if [ -e "$selected_path" ]; then
@@ -26,5 +27,6 @@ Encrypted: $encrypted"
 else
     "$dialog_tool" "$window_uuid" ${REMOVE_BUTTON_ID} omc_disable
     "$dialog_tool" "$window_uuid" ${REVEAL_BUTTON_ID} omc_disable
+    "$dialog_tool" "$window_uuid" ${PREVIEW_BUTTON_ID} omc_disable
     "$dialog_tool" "$window_uuid" ${INFO_BUTTON_ID} omc_disable
 fi

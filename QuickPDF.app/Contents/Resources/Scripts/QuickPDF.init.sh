@@ -11,7 +11,14 @@ set_summary "Drop PDF files into the list, pick an operation, then press Run.
 
 Engine: ${qpdf_version:-qpdf (missing!)}"
 
-# If files were dropped on the app icon, add them
+# Seed the file list: from objects dropped on the app icon, or from the
+# Open… panel selection handed off via the private pasteboard
 if [ -n "$OMC_OBJ_PATH" ]; then
     add_files_to_table "$OMC_OBJ_PATH"
+else
+    open_paths="$("$pasteboard_tool" "$OPEN_PATHS_PB_KEY" get)"
+    if [ -n "$open_paths" ]; then
+        "$pasteboard_tool" "$OPEN_PATHS_PB_KEY" set ""
+        add_files_to_table "$open_paths"
+    fi
 fi
