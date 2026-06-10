@@ -6,7 +6,8 @@
     "style": "balanced",
     "frame": {
       "minWidth": 820,
-      "minHeight": 640
+      "minHeight": 780,
+      "idealHeight": 800
     },
     "padding": {
       "top": 4
