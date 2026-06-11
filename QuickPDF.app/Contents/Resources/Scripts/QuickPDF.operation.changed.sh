@@ -34,14 +34,3 @@ case "$operation" in
     flatten)  show_group ${GROUP_FLATTEN_ID} ;;
     inspect)  show_group ${GROUP_INSPECT_ID} ;;
 esac
-
-# The overwrite toggle only applies to operations that write into a chosen
-# destination folder. Inspect writes nothing; Merge's save panel asks itself.
-case "$operation" in
-    inspect|merge)
-        "$dialog_tool" "$window_uuid" ${OVERWRITE_TOGGLE_ID} omc_disable
-        ;;
-    *)
-        "$dialog_tool" "$window_uuid" ${OVERWRITE_TOGGLE_ID} omc_enable
-        ;;
-esac

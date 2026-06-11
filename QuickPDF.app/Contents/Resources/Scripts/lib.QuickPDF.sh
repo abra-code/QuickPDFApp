@@ -7,7 +7,6 @@ QPDF="$OMC_APP_BUNDLE_PATH/Contents/Helpers/qpdf"
 # Control IDs
 TABLE_ID=10
 SUMMARY_VIEW_ID=12
-OVERWRITE_TOGGLE_ID=14
 REMOVE_BUTTON_ID=102
 REVEAL_BUTTON_ID=104
 PREVIEW_BUTTON_ID=105
@@ -165,6 +164,37 @@ format_size() {
     else
         echo "${bytes} bytes"
     fi
+}
+
+# Echo a path that does not exist yet. If the given path is taken, append
+# " 2", " 3", … before the extension (or to the name for folders/extensionless).
+# Arguments: desired path
+unique_path() {
+    local path="$1"
+    if [ ! -e "$path" ]; then
+        echo "$path"
+        return
+    fi
+    local dir base stem ext n candidate
+    dir="$(/usr/bin/dirname "$path")"
+    base="$(/usr/bin/basename "$path")"
+    case "$base" in
+        *.*)
+            stem="${base%.*}"
+            ext=".${base##*.}"
+            ;;
+        *)
+            stem="$base"
+            ext=""
+            ;;
+    esac
+    n=2
+    candidate="$dir/$stem $n$ext"
+    while [ -e "$candidate" ]; do
+        n=$((n + 1))
+        candidate="$dir/$stem $n$ext"
+    done
+    echo "$candidate"
 }
 
 # Validate a 1-100 integer; echoes the clamped value (default on garbage)

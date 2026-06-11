@@ -1,0 +1,174 @@
+{
+  "COMMAND_LIST": [
+    {
+      "REQUIRED_OMC_VERSION": "5.1",
+      "NEXT_COMMAND_ID": "QuickPDF.new",
+      "EXECUTION_MODE": "exe_script_file",
+      "MULTIPLE_OBJECT_SETTINGS": {
+        "SEPARATOR": "\\n",
+        "PROCESSING_MODE": "proc_together",
+        "SORT_METHOD": "sort_by_name"
+      },
+      "NAME": "QuickPDF",
+      "ACTIVATION_MODE": "act_always",
+      "REQUIRED_MAC_OS_MIN_VERSION": "14.6"
+    },
+    {
+      "CHOOSE_OBJECT_DIALOG": {
+        "ALLOWED_CONTENT_TYPES": [
+          "com.adobe.pdf",
+          "public.folder"
+        ],
+        "ALLOW_MULTIPLE_ITEMS": true,
+        "MESSAGE": "Select PDF files or folders",
+        "USE_PATH_CACHING": false
+      },
+      "COMMAND_ID": "QuickPDF.open",
+      "EXECUTION_MODE": "exe_script_file",
+      "MULTIPLE_OBJECT_SETTINGS": {
+        "PROCESSING_MODE": "proc_together",
+        "SEPARATOR": "\\n",
+        "SORT_METHOD": "sort_by_name"
+      },
+      "NAME": "QuickPDF"
+    },
+    {
+      "ACTIONUI_WINDOW": {
+        "END_CANCEL_SUBCOMMAND_ID": "QuickPDF.cancel",
+        "INIT_SUBCOMMAND_ID": "QuickPDF.init",
+        "IS_BLOCKING": false,
+        "JSON_NAME": "QuickPDF"
+      },
+      "COMMAND_ID": "QuickPDF.new",
+      "EXECUTION_MODE": "exe_shell_script",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.init",
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.files.selection.changed",
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "CHOOSE_OBJECT_DIALOG": {
+        "ALLOWED_CONTENT_TYPES": [
+          "com.adobe.pdf",
+          "public.folder"
+        ],
+        "ALLOW_MULTIPLE_ITEMS": true,
+        "MESSAGE": "Select PDF files to add",
+        "USE_PATH_CACHING": false
+      },
+      "COMMAND_ID": "QuickPDF.add.files",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.files.drop",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.remove.selected",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.clear.all",
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.files.double.click",
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.quicklook",
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.reveal.in.finder",
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.info",
+      "EXECUTION_MODE": "exe_script_file_with_output_window",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.operation.changed",
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.encrypt.bits.changed",
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.start.batch",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "CHOOSE_FOLDER_DIALOG": {
+        "BUTTON_PROMPT": "Run",
+        "MESSAGE": "Select destination folder"
+      },
+      "COMMAND_ID": "QuickPDF.run.batch",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.run.merge",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF",
+      "SAVE_AS_DIALOG": {
+        "BUTTON_PROMPT": "Merge",
+        "DEFAULT_FILE_NAME": [
+          "Merged.pdf"
+        ],
+        "MESSAGE": "Save merged PDF as"
+      }
+    },
+    {
+      "COMMAND_ID": "QuickPDF.inspect.run",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
+      "EXECUTION_MODE": "exe_script_file_with_output_window",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.cancel",
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    }
+  ],
+  "VERSION": 2
+}

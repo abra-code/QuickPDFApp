@@ -19,8 +19,6 @@ fi
 operation="$OMC_ACTIONUI_VIEW_60_VALUE"
 [ -z "$operation" ] && operation="optimize"
 
-overwrite="$OMC_ACTIONUI_VIEW_14_VALUE"
-
 # Fill QPDF_ARGS / QPDF_POST_ARGS / QPDF_LINEARIZE from the UI
 build_qpdf_args "$operation"
 
@@ -37,7 +35,7 @@ IFS=$'\n' read -r -d '' -a files <<< "$file_paths" || true
 success_count=0
 warn_count=0
 error_count=0
-skipped_count=0
+renamed_count=0
 details=""
 
 # Run one qpdf pass: run_qpdf input output
@@ -63,13 +61,13 @@ for file_path in "${files[@]}"; do
     # Split is 1:N - parts go into a destination subfolder named after the file
     if [ "$operation" = "split" ]; then
         name_no_ext="${filename%.*}"
-        subdir="$destination/$name_no_ext"
-
-        if [ -e "$subdir" ] && [ "$overwrite" != "true" ]; then
-            skipped_count=$((skipped_count + 1))
-            details="${details}
-- ${filename}: skipped (folder ${name_no_ext}/ already exists)"
-            continue
+        # Never overwrite: pick a fresh folder name if one already exists
+        subdir="$(unique_path "$destination/$name_no_ext")"
+        subdir_name="$(/usr/bin/basename "$subdir")"
+        rename_note=""
+        if [ "$subdir_name" != "$name_no_ext" ]; then
+            renamed_count=$((renamed_count + 1))
+            rename_note=" — renamed, ${name_no_ext}/ already existed"
         fi
 
         /bin/mkdir -p "$subdir"
@@ -82,11 +80,11 @@ for file_path in "${files[@]}"; do
             if [ $exit_code -eq 3 ]; then
                 warn_count=$((warn_count + 1))
                 details="${details}
-⚠ ${filename}: split into ${part_count} part(s) → ${name_no_ext}/ (with warnings)"
+⚠ ${filename}: split into ${part_count} part(s) → ${subdir_name}/ (with warnings)${rename_note}"
             else
                 success_count=$((success_count + 1))
                 details="${details}
-✓ ${filename}: split into ${part_count} part(s) → ${name_no_ext}/"
+✓ ${filename}: split into ${part_count} part(s) → ${subdir_name}/${rename_note}"
             fi
         else
             error_count=$((error_count + 1))
@@ -97,13 +95,13 @@ for file_path in "${files[@]}"; do
         continue
     fi
 
-    output_file="$destination/$filename"
-
-    if [ -e "$output_file" ] && [ "$overwrite" != "true" ]; then
-        skipped_count=$((skipped_count + 1))
-        details="${details}
-- ${filename}: skipped (already exists)"
-        continue
+    # Never overwrite: pick a fresh file name if one already exists
+    output_file="$(unique_path "$destination/$filename")"
+    output_name="$(/usr/bin/basename "$output_file")"
+    rename_note=""
+    if [ "$output_name" != "$filename" ]; then
+        renamed_count=$((renamed_count + 1))
+        rename_note=" — saved as ${output_name}, file already existed"
     fi
 
     # qpdf refuses identical input and output paths - always write to a temp
@@ -147,11 +145,11 @@ for file_path in "${files[@]}"; do
         if [ $exit_code -eq 3 ]; then
             warn_count=$((warn_count + 1))
             details="${details}
-⚠ ${filename}: $(format_size "$orig_size") → $(format_size "$new_size") (with warnings)"
+⚠ ${filename}: $(format_size "$orig_size") → $(format_size "$new_size") (with warnings)${rename_note}"
         else
             success_count=$((success_count + 1))
             details="${details}
-✓ ${filename}: $(format_size "$orig_size") → $(format_size "$new_size")"
+✓ ${filename}: $(format_size "$orig_size") → $(format_size "$new_size")${rename_note}"
         fi
     else
         /bin/rm -f "$tmp_out"
@@ -166,7 +164,7 @@ done
 summary="Operation: ${operation}
 Destination: ${destination}
 
-${success_count} succeeded · ${warn_count} with warnings · ${skipped_count} skipped · ${error_count} failed
+${success_count} succeeded · ${warn_count} with warnings · ${renamed_count} renamed · ${error_count} failed
 ${details}"
 
 set_summary "$summary"

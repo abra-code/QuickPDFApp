@@ -11,9 +11,13 @@ if [ -z "$output_file" ]; then
     exit 0
 fi
 
+# If we append .pdf ourselves, the save panel never confirmed that final
+# path - never overwrite, pick a unique name instead.
 case "$output_file" in
     *.pdf|*.PDF) ;;
-    *) output_file="${output_file}.pdf" ;;
+    *)
+        output_file="$(unique_path "${output_file}.pdf")"
+        ;;
 esac
 
 file_paths="$OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS"

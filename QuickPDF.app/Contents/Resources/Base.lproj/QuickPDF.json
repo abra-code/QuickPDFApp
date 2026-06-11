@@ -138,18 +138,19 @@
       "spacing": 12,
       "alignment": "leading",
       "frame": { "minWidth": 460, "idealWidth": 520 },
-      "padding": { "leading": 8, "trailing": 8 }
+      "padding": { "leading": 8, "trailing": 8,  "top": 8 }
     },
     "children": [
       {
         "type": "HStack",
         "properties": { "spacing": 12 },
         "children": [
+          { "type": "Spacer" },
           {
             "type": "Picker",
             "id": 60,
             "properties": {
-              "title": "What do you want to do?",
+              "title": "Operation",
               "pickerStyle": "menu",
               "options": [
                 { "title": "Optimize", "tag": "optimize" },
@@ -636,7 +637,6 @@
         "type": "HStack",
         "properties": { "spacing": 12, "padding": "default" },
         "children": [
-          { "type": "Toggle", "id": 14, "properties": { "title": "Overwrite existing files" } },
           { "type": "Spacer" },
           { "type": "Button", "id": 90, "properties": { "title": "Run", "buttonStyle": "borderedProminent", "actionID": "QuickPDF.start.batch" } }
         ]
