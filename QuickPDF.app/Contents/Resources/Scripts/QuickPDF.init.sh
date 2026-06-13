@@ -7,7 +7,7 @@ source "${OMC_APP_BUNDLE_PATH}/Contents/Resources/Scripts/lib.QuickPDF.sh"
 "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_remove_all_rows
 
 qpdf_version="$("$QPDF" --version 2>/dev/null | /usr/bin/head -1)"
-set_summary "Drop PDF files into the list, pick an operation, then press Run.
+set_summary "Drop PDF files into the list, pick an operation, then press Save.
 
 Engine: ${qpdf_version:-qpdf (missing!)}"
 

@@ -122,12 +122,12 @@
       "NAME": "QuickPDF"
     },
     {
-      "COMMAND_ID": "QuickPDF.start.batch",
+      "NAME": "QuickPDF",
       "ENVIRONMENT_VARIABLES": {
         "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
       },
       "EXECUTION_MODE": "exe_script_file",
-      "NAME": "QuickPDF"
+      "COMMAND_ID": "QuickPDF.start.batch"
     },
     {
       "CHOOSE_FOLDER_DIALOG": {
@@ -155,6 +155,21 @@
         ],
         "MESSAGE": "Save merged PDF as"
       }
+    },
+    {
+      "NAME": "QuickPDF",
+      "SAVE_AS_DIALOG": {
+        "MESSAGE": "Save PDF as",
+        "DEFAULT_FILE_NAME": [
+          "Output.pdf",
+        ],
+        "BUTTON_PROMPT": "Save"
+      },
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
+      "EXECUTION_MODE": "exe_script_file",
+      "COMMAND_ID": "QuickPDF.run.single"
     },
     {
       "COMMAND_ID": "QuickPDF.inspect.run",

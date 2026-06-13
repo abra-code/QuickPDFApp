@@ -22,14 +22,6 @@ operation="$OMC_ACTIONUI_VIEW_60_VALUE"
 # Fill QPDF_ARGS / QPDF_POST_ARGS / QPDF_LINEARIZE from the UI
 build_qpdf_args "$operation"
 
-# Advanced passthrough: extra flags, whitespace-split (no shell quoting)
-extra_flags="$OMC_ACTIONUI_VIEW_160_VALUE"
-if [ -n "$extra_flags" ]; then
-    for flag_word in $extra_flags; do
-        QPDF_ARGS+=("$flag_word")
-    done
-fi
-
 IFS=$'\n' read -r -d '' -a files <<< "$file_paths" || true
 
 success_count=0
