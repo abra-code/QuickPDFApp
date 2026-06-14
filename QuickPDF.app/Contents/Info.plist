@@ -69,8 +69,6 @@
 	</dict>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>QuickPDF sends AppleEvents to other apps to provide functionality unique to this applet.</string>
-	<key>NSMainNibFile</key>
-	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

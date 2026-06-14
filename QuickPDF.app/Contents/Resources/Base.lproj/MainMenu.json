@@ -1,0 +1,13 @@
+[
+  {
+    "type": "CommandGroup",
+    "properties": { "placement": "replacing", "placementTarget": "open" },
+    "children": [
+      { "type": "Button", "properties": {
+          "title": "Open…",
+          "actionID": "QuickPDF.open",
+          "keyboardShortcut": { "key": "o" }
+      } }
+    ]
+  }
+]

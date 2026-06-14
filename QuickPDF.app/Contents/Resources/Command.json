@@ -161,7 +161,7 @@
       "SAVE_AS_DIALOG": {
         "MESSAGE": "Save PDF as",
         "DEFAULT_FILE_NAME": [
-          "Output.pdf",
+          "Output.pdf"
         ],
         "BUTTON_PROMPT": "Save"
       },
