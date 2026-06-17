@@ -2,7 +2,6 @@
 # QuickPDF.start.batch.sh - Run button: validate, then route to the right runner
 #
 # Routing logic:
-# - inspect: output window, no save dialog
 # - merge: always N:1 → SAVE_AS_DIALOG (QuickPDF.run.merge)
 # - 1 file + 1:1 operation (optimize, encrypt, decrypt, rotate, repair, metadata, flatten):
 #   → SAVE_AS_DIALOG (QuickPDF.run.single) — single-document "Save As" panel
@@ -31,9 +30,6 @@ operation="$OMC_ACTIONUI_VIEW_60_VALUE"
 file_count=$(printf '%s\n' "$file_paths" | /usr/bin/grep -c .)
 
 case "$operation" in
-    inspect)
-        "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "QuickPDF.inspect.run"
-        ;;
     encrypt)
         user_pw="$OMC_ACTIONUI_VIEW_110_VALUE"
         owner_pw="$OMC_ACTIONUI_VIEW_111_VALUE"

@@ -10,7 +10,7 @@ show_group() {
     local visible_id="$1"
     local gid
     for gid in ${GROUP_OPTIMIZE_ID} ${GROUP_ENCRYPT_ID} ${GROUP_DECRYPT_ID} \
-               ${GROUP_INSPECT_ID} ${GROUP_ROTATE_ID} ${GROUP_EXTRACT_ID} \
+               ${GROUP_ROTATE_ID} ${GROUP_EXTRACT_ID} \
                ${GROUP_SPLIT_ID} ${GROUP_MERGE_ID} ${GROUP_REPAIR_ID} \
                ${GROUP_METADATA_ID} ${GROUP_FLATTEN_ID}; do
         if [ "$gid" = "$visible_id" ]; then
@@ -32,5 +32,4 @@ case "$operation" in
     repair)   show_group ${GROUP_REPAIR_ID} ;;
     metadata) show_group ${GROUP_METADATA_ID} ;;
     flatten)  show_group ${GROUP_FLATTEN_ID} ;;
-    inspect)  show_group ${GROUP_INSPECT_ID} ;;
 esac

@@ -172,14 +172,6 @@
       "COMMAND_ID": "QuickPDF.run.single"
     },
     {
-      "COMMAND_ID": "QuickPDF.inspect.run",
-      "ENVIRONMENT_VARIABLES": {
-        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
-      },
-      "EXECUTION_MODE": "exe_script_file_with_output_window",
-      "NAME": "QuickPDF"
-    },
-    {
       "COMMAND_ID": "QuickPDF.cancel",
       "EXECUTION_MODE": "exe_script_file",
       "NAME": "QuickPDF"

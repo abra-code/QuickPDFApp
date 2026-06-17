@@ -162,8 +162,7 @@
                 { "title": "Rotate Pages", "tag": "rotate" },
                 { "title": "Repair", "tag": "repair" },
                 { "title": "Remove Metadata", "tag": "metadata" },
-                { "title": "Flatten", "tag": "flatten" },
-                { "title": "Inspect", "tag": "inspect" }
+                { "title": "Flatten", "tag": "flatten" }
               ],
               "actionID": "QuickPDF.operation.changed"
             }
@@ -546,45 +545,6 @@
                   },
                   { "type": "Toggle", "id": 196, "properties": { "title": "Regenerate stale form-field appearances first", "isOn": true, "style": "checkbox" } },
                   { "type": "Toggle", "id": 197, "properties": { "title": "Bake page rotation into contents (fix broken viewers)", "style": "checkbox" } },
-                  { "type": "Divider", "properties": { "opacity": 0, "frame": { "height": 0 } } }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "GroupBox",
-            "id": 230,
-            "properties": {
-              "title": "Inspect",
-              "hidden": true,
-              "padding": "default",
-              "frame": { "minWidth": 440, "maxWidth": 99999 }
-            },
-            "children": [
-              {
-                "type": "VStack",
-                "properties": { "spacing": 12, "alignment": "leading", "padding": "default" },
-                "children": [
-                  {
-                    "type": "HStack",
-                    "properties": { "spacing": 8 },
-                    "children": [
-                      {
-                        "type": "Picker",
-                        "id": 170,
-                        "properties": {
-                          "title": "Show",
-                          "pickerStyle": "menu",
-                          "options": [
-                            { "title": "Basic properties", "tag": "basic" },
-                            { "title": "Full details (JSON)", "tag": "json" }
-                          ]
-                        }
-                      },
-                      { "type": "Spacer" }
-                    ]
-                  },
-                  { "type": "Text", "properties": { "text": "Read-only: results open in an output window. No files are written.", "foregroundStyle": "secondary", "font": "caption" } },
                   { "type": "Divider", "properties": { "opacity": 0, "frame": { "height": 0 } } }
                 ]
               }
