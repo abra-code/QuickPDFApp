@@ -8,4 +8,4 @@ if [ -n "$OMC_DLG_CHOOSE_OBJECT_PATH" ]; then
     add_files_to_table "$OMC_DLG_CHOOSE_OBJECT_PATH"
 fi
 
-"$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "QuickPDF.files.selection.changed"
+select_first_or_resync

@@ -22,4 +22,4 @@ fi
 
 add_files_to_table "$dropped_paths"
 
-"$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "QuickPDF.files.selection.changed"
+select_first_or_resync

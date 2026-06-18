@@ -110,6 +110,16 @@ add_files_to_table() {
     local new_paths="$1"
     local buffer=""
 
+    # Outputs read by the caller via select_first_or_resync:
+    #   LIST_WAS_EMPTY  1 if the table had no rows before this add
+    #   FIRST_FILE_PATH full path of the first row after this add ("" if none)
+    FIRST_FILE_PATH=""
+    if [ -n "$OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS" ]; then
+        LIST_WAS_EMPTY=0
+    else
+        LIST_WAS_EMPTY=1
+    fi
+
     # Keep existing rows
     local existing_paths="$OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS"
     if [ -n "$existing_paths" ]; then
@@ -141,9 +151,68 @@ add_files_to_table() {
     done <<< "$new_paths"
 
     if [ -n "$buffer" ]; then
-        printf "%s" "$buffer" | /usr/bin/sort -u | "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_set_rows_from_stdin
+        local sorted="$(printf "%s" "$buffer" | /usr/bin/sort -u)"
+        printf "%s" "$sorted" | "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_set_rows_from_stdin
+        # First row after sort = first table row; column 2 (tab field 2) is the path.
+        FIRST_FILE_PATH="$(printf "%s" "$sorted" | /usr/bin/head -1 | /usr/bin/cut -f2)"
     else
         "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_remove_all_rows
+    fi
+}
+
+# Update the detail pane (summary + per-file action buttons) for a selected
+# file. Pass the file's full path, or "" when nothing is selected.
+#
+# Used two ways:
+#   - the selection-changed handler passes the live table value (a real user
+#     click);
+#   - the add handlers pass the known first-row path after auto-selecting it.
+# The add handlers call this directly rather than chaining
+# QuickPDF.files.selection.changed, because omc_select_row fires no actionID
+# AND a chained handler would race the (fire-and-forget) selection message on
+# the host's main runloop — it could read the table value before the new
+# selection is applied. Passing the path explicitly is race-free.
+apply_file_selection() {
+    local selected_path="$1"
+
+    if [ -z "$selected_path" ]; then
+        "$dialog_tool" "$window_uuid" ${REMOVE_BUTTON_ID} omc_disable
+        "$dialog_tool" "$window_uuid" ${REVEAL_BUTTON_ID} omc_disable
+        "$dialog_tool" "$window_uuid" ${PREVIEW_BUTTON_ID} omc_disable
+        "$dialog_tool" "$window_uuid" ${INFO_BUTTON_ID} omc_disable
+        return
+    fi
+
+    "$dialog_tool" "$window_uuid" ${REMOVE_BUTTON_ID} omc_enable
+    "$dialog_tool" "$window_uuid" ${REVEAL_BUTTON_ID} omc_enable
+    "$dialog_tool" "$window_uuid" ${PREVIEW_BUTTON_ID} omc_enable
+    "$dialog_tool" "$window_uuid" ${INFO_BUTTON_ID} omc_enable
+
+    if [ -e "$selected_path" ]; then
+        local size="$(/usr/bin/stat -f %z "$selected_path" 2>/dev/null)"
+        local pages="$("$QPDF" --show-npages "$selected_path" 2>/dev/null)"
+        local encrypted="No"
+        if "$QPDF" --is-encrypted "$selected_path" 2>/dev/null; then
+            encrypted="Yes"
+        fi
+        set_summary "$(/usr/bin/basename "$selected_path")
+Size: $(format_size "$size")
+Pages: ${pages:-?}
+Encrypted: $encrypted"
+    fi
+}
+
+# Called by the add handlers right after add_files_to_table. If files were just
+# added to a previously empty list, select and show the first row. Otherwise
+# re-sync the detail pane to the live selection through the normal handler.
+select_first_or_resync() {
+    if [ "$LIST_WAS_EMPTY" = "1" ] && [ -n "$FIRST_FILE_PATH" ]; then
+        # Visual selection only (fires no actionID); update the detail pane
+        # directly from the known path to avoid the selection-vs-handler race.
+        "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_select_row 0
+        apply_file_selection "$FIRST_FILE_PATH"
+    else
+        "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "QuickPDF.files.selection.changed"
     fi
 }
 
@@ -171,9 +240,9 @@ unique_path() {
         echo "$path"
         return
     fi
-    local dir base stem ext n candidate
-    dir="$(/usr/bin/dirname "$path")"
-    base="$(/usr/bin/basename "$path")"
+    local stem ext
+    local dir="$(/usr/bin/dirname "$path")"
+    local base="$(/usr/bin/basename "$path")"
     case "$base" in
         *.*)
             stem="${base%.*}"
@@ -184,8 +253,8 @@ unique_path() {
             ext=""
             ;;
     esac
-    n=2
-    candidate="$dir/$stem $n$ext"
+    local n=2
+    local candidate="$dir/$stem $n$ext"
     while [ -e "$candidate" ]; do
         n=$((n + 1))
         candidate="$dir/$stem $n$ext"
