@@ -3,6 +3,8 @@
 
 # Embedded qpdf binary
 QPDF="$OMC_APP_BUNDLE_PATH/Contents/Helpers/qpdf"
+# Embedded pdfreduce binary (Quartz image recompression / downsampling)
+PDFREDUCE="$OMC_APP_BUNDLE_PATH/Contents/Helpers/pdfreduce"
 
 # Control IDs
 TABLE_ID=10
@@ -21,6 +23,8 @@ OPT_RECOMPRESS_IMAGES_ID=72
 OPT_JPEG_QUALITY_ID=73
 OPT_OBJECT_STREAMS_ID=74
 OPT_REMOVE_UNREF_ID=75
+OPT_DOWNSAMPLE_ID=76
+OPT_DPI_ID=77
 
 # Encrypt controls
 ENC_USER_PW_ID=110
@@ -276,6 +280,20 @@ clamp_quality() {
     echo "$q"
 }
 
+# Validate a positive integer DPI; echoes the clamped value (default on garbage)
+# Arguments: value default
+clamp_dpi() {
+    local d="$1" def="$2"
+    case "$d" in
+        '' | *[!0-9]*) d="$def" ;;
+        *)
+            [ "$d" -lt 1 ] && d="$def"
+            [ "$d" -gt 2400 ] && d=2400
+            ;;
+    esac
+    echo "$d"
+}
+
 # Build the qpdf argument lists for the current operation into globals:
 #   QPDF_ARGS      - flags placed before the input path
 #   QPDF_POST_ARGS - flags placed between the input and output paths
@@ -287,6 +305,10 @@ build_qpdf_args() {
     QPDF_ARGS=()
     QPDF_POST_ARGS=()
     QPDF_LINEARIZE=0
+    # pdfreduce image stage (optimize only); consumed by optimize_file
+    QPDF_RECOMPRESS_IMAGES=0
+    QPDF_JPEG_QUALITY=85
+    QPDF_DOWNSAMPLE_DPI=0
 
     case "$op" in
         optimize)
@@ -299,9 +321,18 @@ build_qpdf_args() {
             if [ "$OMC_ACTIONUI_VIEW_75_VALUE" = "true" ]; then
                 QPDF_ARGS+=(--remove-unreferenced-resources=yes)
             fi
+            # Image recompression is handled by the pdfreduce helper (Quartz
+            # image filter) as a first stage, not qpdf: qpdf cannot downsample
+            # and silently skips ICC/JPEG images. optimize_file runs it, then
+            # the qpdf structural pass built above.
             if [ "$OMC_ACTIONUI_VIEW_72_VALUE" = "true" ]; then
-                local quality=$(clamp_quality "$OMC_ACTIONUI_VIEW_73_VALUE" 85)
-                QPDF_ARGS+=(--optimize-images "--jpeg-quality=$quality" --oi-min-width=64 --oi-min-height=64)
+                QPDF_RECOMPRESS_IMAGES=1
+                QPDF_JPEG_QUALITY=$(clamp_quality "$OMC_ACTIONUI_VIEW_73_VALUE" 85)
+                if [ "$OMC_ACTIONUI_VIEW_76_VALUE" = "true" ]; then
+                    QPDF_DOWNSAMPLE_DPI=$(clamp_dpi "$OMC_ACTIONUI_VIEW_77_VALUE" 150)
+                else
+                    QPDF_DOWNSAMPLE_DPI=0
+                fi
             fi
             if [ "$OMC_ACTIONUI_VIEW_70_VALUE" = "true" ]; then
                 QPDF_LINEARIZE=1
@@ -409,5 +440,68 @@ build_qpdf_args() {
             fi
             ;;
     esac
+}
+
+# Run one qpdf pass: run_qpdf input output
+# Echoes qpdf's combined stderr/stdout; returns qpdf's exit code.
+run_qpdf() {
+    "$QPDF" "${QPDF_ARGS[@]}" "$1" "${QPDF_POST_ARGS[@]}" "$2" 2>&1
+}
+
+# Full optimize pipeline for one file: an optional pdfreduce image stage
+# followed by the qpdf structural pass, including the linearize keep-if-smaller
+# two-pass. Writes the result to $2 (a caller-provided temp path). Echoes the
+# tool output for the caller's summary; returns an exit code compatible with the
+# run scripts (0 ok, 3 qpdf warnings, 2 fatal, other = error).
+#
+# Called inside a command substitution, so QPDF_ARGS mutations here stay local
+# to the subshell; file writes/moves still take effect.
+optimize_file() {
+    local input="$1" final_out="$2"
+    local work_dir; work_dir="$(/usr/bin/dirname "$final_out")"
+    local src="$input" reduced=""
+
+    if [ "$QPDF_RECOMPRESS_IMAGES" = "1" ]; then
+        reduced="$(/usr/bin/mktemp "$work_dir/.quickpdf.XXXXXX")"
+        local pr_out
+        pr_out="$("$PDFREDUCE" -q "$QPDF_JPEG_QUALITY" -r "$QPDF_DOWNSAMPLE_DPI" \
+                  "$input" "$reduced" 2>&1)"
+        if [ $? -ne 0 ]; then
+            /bin/rm -f "$reduced"
+            printf 'pdfreduce: %s\n' "$(printf '%s' "$pr_out" | /usr/bin/head -1)"
+            return 2
+        fi
+        src="$reduced"
+    fi
+
+    local out; out="$(run_qpdf "$src" "$final_out")"
+    local code=$?
+
+    if [ "$QPDF_LINEARIZE" = "1" ] && [ $code -ne 2 ]; then
+        local tmp_linear; tmp_linear="$(/usr/bin/mktemp "$work_dir/.quickpdf.XXXXXX")"
+        QPDF_ARGS+=(--linearize)
+        local lin_out; lin_out="$(run_qpdf "$src" "$tmp_linear")"
+        local lin_code=$?
+        if [ $lin_code -ne 2 ]; then
+            local plain_size linear_size
+            plain_size="$(/usr/bin/stat -f %z "$final_out")"
+            linear_size="$(/usr/bin/stat -f %z "$tmp_linear")"
+            if [ "$linear_size" -le "$plain_size" ]; then
+                /bin/mv -f "$tmp_linear" "$final_out"
+                # The delivered file now comes from the linearized pass, so
+                # report its status/warnings rather than the first pass's.
+                out="$lin_out"
+                code=$lin_code
+            else
+                /bin/rm -f "$tmp_linear"
+            fi
+        else
+            /bin/rm -f "$tmp_linear"
+        fi
+    fi
+
+    [ -n "$reduced" ] && /bin/rm -f "$reduced"
+    printf '%s' "$out"
+    return $code
 }
 

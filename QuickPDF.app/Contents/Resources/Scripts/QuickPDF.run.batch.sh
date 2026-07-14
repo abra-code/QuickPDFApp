@@ -30,11 +30,7 @@ error_count=0
 renamed_count=0
 details=""
 
-# Run one qpdf pass: run_qpdf input output
-# Echoes qpdf stderr/stdout; returns the qpdf exit code.
-run_qpdf() {
-    "$QPDF" "${QPDF_ARGS[@]}" "$1" "${QPDF_POST_ARGS[@]}" "$2" 2>&1
-}
+# run_qpdf and optimize_file are provided by lib.QuickPDF.sh
 
 set_summary "Running ${operation} on ${#files[@]} file(s)…"
 
@@ -100,29 +96,11 @@ for file_path in "${files[@]}"; do
     # file in the destination folder, then move into place.
     tmp_out="$(/usr/bin/mktemp "$destination/.quickpdf.XXXXXX")"
 
-    if [ "$operation" = "optimize" ] && [ "$QPDF_LINEARIZE" = "1" ]; then
-        # Two passes: keep the linearized result only if it isn't larger
-        output="$(run_qpdf "$file_path" "$tmp_out")"
+    if [ "$operation" = "optimize" ]; then
+        # Optional pdfreduce image stage, then qpdf structural pass with the
+        # linearize keep-if-smaller two-pass (see optimize_file in lib).
+        output="$(optimize_file "$file_path" "$tmp_out")"
         exit_code=$?
-        if [ $exit_code -ne 2 ]; then
-            tmp_linear="$(/usr/bin/mktemp "$destination/.quickpdf.XXXXXX")"
-            QPDF_ARGS+=(--linearize)
-            lin_output="$(run_qpdf "$file_path" "$tmp_linear")"
-            lin_exit=$?
-            # Restore args for the next file
-            unset 'QPDF_ARGS[${#QPDF_ARGS[@]}-1]'
-            if [ $lin_exit -ne 2 ]; then
-                plain_size="$(/usr/bin/stat -f %z "$tmp_out")"
-                linear_size="$(/usr/bin/stat -f %z "$tmp_linear")"
-                if [ "$linear_size" -le "$plain_size" ]; then
-                    /bin/mv -f "$tmp_linear" "$tmp_out"
-                else
-                    /bin/rm -f "$tmp_linear"
-                fi
-            else
-                /bin/rm -f "$tmp_linear"
-            fi
-        fi
     else
         output="$(run_qpdf "$file_path" "$tmp_out")"
         exit_code=$?

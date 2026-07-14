@@ -54,34 +54,11 @@ set_summary "Running ${operation} on ${filename}…"
 out_dir="$(/usr/bin/dirname "$output_file")"
 tmp_out="$(/usr/bin/mktemp "$out_dir/.quickpdf.XXXXXX")"
 
-# Local helper (same as in run.batch.sh)
-run_qpdf() {
-    "$QPDF" "${QPDF_ARGS[@]}" "$1" "${QPDF_POST_ARGS[@]}" "$2" 2>&1
-}
-
-if [ "$operation" = "optimize" ] && [ "$QPDF_LINEARIZE" = "1" ]; then
-    # Two-pass linearize: only keep the linearized version if it is smaller
-    output="$(run_qpdf "$input_file" "$tmp_out")"
+if [ "$operation" = "optimize" ]; then
+    # Optimize = optional pdfreduce image stage, then qpdf structural pass with
+    # the linearize keep-if-smaller two-pass (see optimize_file in lib).
+    output="$(optimize_file "$input_file" "$tmp_out")"
     exit_code=$?
-    if [ $exit_code -ne 2 ]; then
-        tmp_linear="$(/usr/bin/mktemp "$out_dir/.quickpdf.XXXXXX")"
-        QPDF_ARGS+=(--linearize)
-        lin_output="$(run_qpdf "$input_file" "$tmp_linear")"
-        lin_exit=$?
-        # Restore args for potential future use (defensive)
-        unset 'QPDF_ARGS[${#QPDF_ARGS[@]}-1]'
-        if [ $lin_exit -ne 2 ]; then
-            plain_size="$(/usr/bin/stat -f %z "$tmp_out")"
-            linear_size="$(/usr/bin/stat -f %z "$tmp_linear")"
-            if [ "$linear_size" -le "$plain_size" ]; then
-                /bin/mv -f "$tmp_linear" "$tmp_out"
-            else
-                /bin/rm -f "$tmp_linear"
-            fi
-        else
-            /bin/rm -f "$tmp_linear"
-        fi
-    fi
 else
     output="$(run_qpdf "$input_file" "$tmp_out")"
     exit_code=$?
