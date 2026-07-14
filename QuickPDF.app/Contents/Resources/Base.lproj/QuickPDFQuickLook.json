@@ -1,0 +1,18 @@
+{
+  "type": "VStack",
+  "properties": {
+    "spacing": 0,
+    "frame": { "minWidth": 480, "minHeight": 360, "idealWidth": 760, "idealHeight": 600, "maxWidth": "infinity", "maxHeight": "infinity" }
+  },
+  "children": [
+    {
+      "type": "QuickLook",
+      "id": 200,
+      "properties": {
+        "previewStyle": "normal",
+        "showsChrome": true,
+        "frame": { "maxWidth": "infinity", "maxHeight": "infinity" }
+      }
+    }
+  ]
+}

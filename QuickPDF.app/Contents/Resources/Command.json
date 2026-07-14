@@ -102,6 +102,22 @@
       "NAME": "QuickPDF"
     },
     {
+      "ACTIONUI_WINDOW": {
+        "INIT_SUBCOMMAND_ID": "QuickPDF.quicklook.init",
+        "IS_BLOCKING": false,
+        "JSON_NAME": "QuickPDFQuickLook",
+        "WINDOW_TITLE": "Quick Look"
+      },
+      "COMMAND_ID": "QuickPDF.quicklook.window",
+      "EXECUTION_MODE": "exe_shell_script",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.quicklook.init",
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
       "COMMAND_ID": "QuickPDF.reveal.in.finder",
       "EXECUTION_MODE": "exe_script_file",
       "NAME": "QuickPDF"
