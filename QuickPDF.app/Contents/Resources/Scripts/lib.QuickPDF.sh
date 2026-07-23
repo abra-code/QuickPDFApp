@@ -3,8 +3,9 @@
 
 # Embedded qpdf binary
 QPDF="$OMC_APP_BUNDLE_PATH/Contents/Helpers/qpdf"
-# Embedded pdfreduce binary (Quartz image recompression / downsampling)
-PDFREDUCE="$OMC_APP_BUNDLE_PATH/Contents/Helpers/pdfreduce"
+# Embedded pdfutil binary; its `reduce` verb does Quartz image recompression /
+# downsampling (formerly the standalone pdfreduce helper).
+PDFUTIL="$OMC_APP_BUNDLE_PATH/Contents/Helpers/pdfutil"
 
 # Control IDs
 TABLE_ID=10
@@ -305,7 +306,7 @@ build_qpdf_args() {
     QPDF_ARGS=()
     QPDF_POST_ARGS=()
     QPDF_LINEARIZE=0
-    # pdfreduce image stage (optimize only); consumed by optimize_file
+    # pdfutil reduce image stage (optimize only); consumed by optimize_file
     QPDF_RECOMPRESS_IMAGES=0
     QPDF_JPEG_QUALITY=85
     QPDF_DOWNSAMPLE_DPI=0
@@ -321,7 +322,7 @@ build_qpdf_args() {
             if [ "$OMC_ACTIONUI_VIEW_75_VALUE" = "true" ]; then
                 QPDF_ARGS+=(--remove-unreferenced-resources=yes)
             fi
-            # Image recompression is handled by the pdfreduce helper (Quartz
+            # Image recompression is handled by pdfutil's reduce verb (Quartz
             # image filter) as a first stage, not qpdf: qpdf cannot downsample
             # and silently skips ICC/JPEG images. optimize_file runs it, then
             # the qpdf structural pass built above.
@@ -448,7 +449,7 @@ run_qpdf() {
     "$QPDF" "${QPDF_ARGS[@]}" "$1" "${QPDF_POST_ARGS[@]}" "$2" 2>&1
 }
 
-# Full optimize pipeline for one file: an optional pdfreduce image stage
+# Full optimize pipeline for one file: an optional pdfutil reduce image stage
 # followed by the qpdf structural pass, including the linearize keep-if-smaller
 # two-pass. Writes the result to $2 (a caller-provided temp path). Echoes the
 # tool output for the caller's summary; returns an exit code compatible with the
@@ -464,11 +465,13 @@ optimize_file() {
     if [ "$QPDF_RECOMPRESS_IMAGES" = "1" ]; then
         reduced="$(/usr/bin/mktemp "$work_dir/.quickpdf.XXXXXX")"
         local pr_out
-        pr_out="$("$PDFREDUCE" -q "$QPDF_JPEG_QUALITY" -r "$QPDF_DOWNSAMPLE_DPI" \
-                  "$input" "$reduced" 2>&1)"
+        # pdfutil reduce edits in place by default and takes the output via -o;
+        # mktemp pre-created $reduced (0 bytes) so --force is needed to overwrite it.
+        pr_out="$("$PDFUTIL" reduce -q "$QPDF_JPEG_QUALITY" -r "$QPDF_DOWNSAMPLE_DPI" \
+                  --force -o "$reduced" "$input" 2>&1)"
         if [ $? -ne 0 ]; then
             /bin/rm -f "$reduced"
-            printf 'pdfreduce: %s\n' "$(printf '%s' "$pr_out" | /usr/bin/head -1)"
+            printf 'pdfutil reduce: %s\n' "$(printf '%s' "$pr_out" | /usr/bin/head -1)"
             return 2
         fi
         src="$reduced"

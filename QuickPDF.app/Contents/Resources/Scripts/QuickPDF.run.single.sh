@@ -55,7 +55,7 @@ out_dir="$(/usr/bin/dirname "$output_file")"
 tmp_out="$(/usr/bin/mktemp "$out_dir/.quickpdf.XXXXXX")"
 
 if [ "$operation" = "optimize" ]; then
-    # Optimize = optional pdfreduce image stage, then qpdf structural pass with
+    # Optimize = optional pdfutil reduce image stage, then qpdf structural pass with
     # the linearize keep-if-smaller two-pass (see optimize_file in lib).
     output="$(optimize_file "$input_file" "$tmp_out")"
     exit_code=$?

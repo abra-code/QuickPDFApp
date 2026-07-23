@@ -97,7 +97,7 @@ for file_path in "${files[@]}"; do
     tmp_out="$(/usr/bin/mktemp "$destination/.quickpdf.XXXXXX")"
 
     if [ "$operation" = "optimize" ]; then
-        # Optional pdfreduce image stage, then qpdf structural pass with the
+        # Optional pdfutil reduce image stage, then qpdf structural pass with the
         # linearize keep-if-smaller two-pass (see optimize_file in lib).
         output="$(optimize_file "$file_path" "$tmp_out")"
         exit_code=$?
