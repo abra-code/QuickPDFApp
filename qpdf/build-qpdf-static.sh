@@ -380,13 +380,31 @@ cd ..
 echo "🔨 Building OpenSSL ${OPENSSL_VERSION}..."
 cd "openssl-${OPENSSL_VERSION}"
 
+# no-module is required, not cosmetic. OpenSSL 3+ keeps RC4 (and the other
+# deprecated algorithms) in the "legacy" provider, and qpdf needs RC4 to derive
+# the key for /R 2-4 encrypted files - i.e. every PDF written with RC4-40/128 or
+# AES-128, which is what most producers (including macOS PDFKit) still emit.
+# providers/build.info only compiles the legacy provider *into* libcrypto when
+# the `module` option is disabled; `no-shared` alone does not do that, so the
+# provider is emitted as lib/ossl-modules/legacy.dylib instead. A statically
+# linked qpdf then has no way to load it and dies with "unable to load openssl
+# legacy provider" on any such file. no-module makes legacy built-in, which also
+# registers it in ossl_predefined_providers so OSSL_PROVIDER_load(ctx,"legacy")
+# resolves without a module file on disk.
 _openssl_build() {
   local target="$1" prefix="$2"
-  ./Configure "$target" no-shared no-tests \
+  ./Configure "$target" no-shared no-module no-tests \
     -mmacosx-version-min="$DEPLOYMENT_TARGET" \
     --prefix="$prefix" --openssldir="$prefix" || { echo "❌ OpenSSL Configure failed ($target)"; exit 1; }
   /usr/bin/make -j$BUILD_JOBS || { echo "❌ OpenSSL make failed ($target)"; exit 1; }
   /usr/bin/make install_sw || { echo "❌ OpenSSL install failed ($target)"; exit 1; }
+
+  # Fail loudly if the legacy provider did not get linked in - otherwise the
+  # breakage only surfaces much later, as a runtime error on RC4 files.
+  if ! /usr/bin/nm "$prefix/lib/libcrypto.a" 2>/dev/null | grep -q "ossl_legacy_provider_init"; then
+    echo "❌ OpenSSL built without a built-in legacy provider ($target) - qpdf could not read RC4/AES-128 PDFs"
+    exit 1
+  fi
 }
 
 if [[ "$ARCH" == "universal" ]]; then
@@ -511,6 +529,18 @@ _check "Encrypt AES-256"     "$QPDF_BIN" --encrypt userpass ownerpass 256 -- \
 _check "Decrypt with password" "$QPDF_BIN" --decrypt --password=userpass \
                              "$SMOKE_TMP/encrypted.pdf" "$SMOKE_TMP/decrypted.pdf"
 _check "Check decrypted PDF" "$QPDF_BIN" --check "$SMOKE_TMP/decrypted.pdf"
+
+# AES-256 (/R 6) only exercises SHA-2 and AES, both in the default provider, so
+# it passes even when the legacy provider is missing. /R 4 is the case that needs
+# RC4 for key derivation, so these two are the real regression test for it.
+# --allow-weak-crypto is needed because qpdf refuses to *write* RC4 by default.
+_check "Encrypt AES-128 (/R 4, needs legacy provider)" \
+                             "$QPDF_BIN" --allow-weak-crypto \
+                             --encrypt userpass ownerpass 128 -- \
+                             "$SAMPLE" "$SMOKE_TMP/enc128.pdf"
+_check "Read back /R 4 file (RC4 key derivation)" \
+                             "$QPDF_BIN" --show-encryption --password=userpass \
+                             "$SMOKE_TMP/enc128.pdf"
 
 # Verify that decrypted output is functionally equivalent (same page count)
 orig_pages=$("$QPDF_BIN" --show-npages "$SAMPLE" 2>/dev/null)
