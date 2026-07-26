@@ -71,6 +71,40 @@ pdfutil is built from a sibling `../pdfutil` checkout (the script offers to clon
 
 ---
 
+## Tests
+
+`./test.sh` runs the cross-tool suite: the tests that only make sense here, where
+both engines ship in one bundle and Optimize runs them as a pipeline.
+
+```bash
+./test.sh                                        # test this repo's QuickPDF.app
+QUICKPDF_APP=/Applications/QuickPDF.app ./test.sh # test an installed bundle
+```
+
+Both helpers are **required** — they are the subject of the tests, so a missing
+binary is a hard error rather than a skip. Run `./update_quickpdf.sh --with-qpdf`
+first on a fresh checkout, since `Contents/Helpers/` is gitignored. Fixtures are
+generated on first run by `Tests/make-fixtures.swift` (needs `swift`) and are
+gitignored; only the generator is committed.
+
+| Case | What it covers |
+|---|---|
+| `helpers.sh` | Both binaries universal, statically self-contained, signed. Includes a regression guard for the RC4 / `/R 2-4` capability that depends on OpenSSL's legacy provider being built into qpdf. |
+| `encryption-interop.sh` | Each engine reads what the other writes, across 40-bit (`/R 2`), 128-bit (`/R 3`), and 256-bit (`/R 6`), plus pdfutil's `/R 4` AES-128 in the other direction. Also the permission reporting where the two tools genuinely disagree. |
+| `structure.sh` | `qpdf --check` as an independent structural opinion on the output of every pdfutil verb, plus page-count and content agreement. |
+| `optimize-pipeline.sh` | The app's real `build_qpdf_args` and `optimize_file`, sourced from `lib.QuickPDF.sh`, driven through `OMC_ACTIONUI_VIEW_*` state. Covers the two-stage scan reduction, the qpdf-only text path, linearize keep-if-smaller, and failure handling. |
+
+Two known divergences are asserted rather than tolerated, so that a change in
+either is noticed instead of silently absorbed:
+
+- **PDFKit over-reports print permissions.** For a file whose `/P` denies
+  high-resolution printing, qpdf reports it denied while pdfutil reports
+  `high-quality-printing` as allowed. pdfutil faithfully reports PDFKit's
+  `accessPermissions`, which conflates the two print bits.
+- **PDFKit's linearizer writes an imperfect hint table.** `qpdf --check` on
+  `pdfutil linearize` output exits 3 with shared-object hint warnings; the file is
+  valid and genuinely linearized, and qpdf's own linearizer is clean.
+
 ## Architecture
 
 QuickPDF is an OMC 5.1 applet. The OMC framework handles the app lifecycle, the operation window, file/folder dialogs, drag-and-drop, and Quick Look. The UI is defined declaratively in `QuickPDF.json` (and `QuickPDFQuickLook.json` for the preview window) in ActionUI format. All business logic runs as shell scripts in `Contents/Resources/Scripts/`, with shared functions and control-ID constants in `lib.QuickPDF.sh`.

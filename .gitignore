@@ -5,3 +5,5 @@ QuickPDF.app/Contents/Helpers/
 QuickPDF.app/Contents/_CodeSignature/
 .DS_Store
 Private/
+Tests/fixtures/
+Tests/tmp/
