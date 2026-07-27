@@ -33,9 +33,61 @@ case "$operation" in
     encrypt)
         user_pw="$OMC_ACTIONUI_VIEW_110_VALUE"
         owner_pw="$OMC_ACTIONUI_VIEW_111_VALUE"
+        user_pw_confirm="$OMC_ACTIONUI_VIEW_117_VALUE"
+        owner_pw_confirm="$OMC_ACTIONUI_VIEW_119_VALUE"
+
+        # Checked before the empty test, because a mismatch is the more specific
+        # diagnosis: it names the field the user got wrong instead of asking for
+        # a password they believe they already entered.
+        #
+        # This is the one class of typo the tool can never recover from. A wrong
+        # password on Decrypt just fails against the file, but a wrong password
+        # on Encrypt is written into the document: no one can open the result,
+        # and nothing here can report what was actually typed. Hence two fields
+        # rather than a strength meter or a reveal button.
+        if [ "$user_pw" != "$user_pw_confirm" ]; then
+            "$alert_tool" --level caution --title "QuickPDF" \
+                "The user password and its confirmation do not match.
+
+Retype both fields and try again."
+            exit 0
+        fi
+        if [ "$owner_pw" != "$owner_pw_confirm" ]; then
+            "$alert_tool" --level caution --title "QuickPDF" \
+                "The owner password and its confirmation do not match.
+
+Retype both fields and try again."
+            exit 0
+        fi
         if [ -z "$user_pw" ] && [ -z "$owner_pw" ]; then
             "$alert_tool" --level caution --title "QuickPDF" \
                 "Enter a user password (and optionally an owner password) before encrypting."
+            exit 0
+        fi
+
+        # Non-ASCII passwords produce files that cannot be reopened, and qpdf
+        # does not reliably say so. Measured against the bundled qpdf 12.3.2,
+        # re-opening each result with PDFKit (what Preview and Quick Look use):
+        #
+        #   "cafe" with an acute e   128: fails   256: fails   qpdf is SILENT
+        #   "Strasse" with a sharp s 128: fails   256: opens   qpdf is SILENT
+        #   Greek, Japanese          128: opens   256: opens   qpdf warns
+        #   emoji                    128: fails   256: fails   qpdf warns
+        #
+        # So the warning qpdf does emit is anti-correlated with the real
+        # failure: the accented-Latin cases most likely for a European user are
+        # exactly the ones it writes without complaint, and no key length is
+        # safe. Surfacing qpdf's warning would therefore miss them - the check
+        # has to be on the password itself, before anything is written.
+        #
+        # This is the same class of unrecoverable outcome the confirmation
+        # fields above exist to prevent: a file nobody can open, reported as a
+        # success, with no way to learn what was actually stored.
+        if printf '%s%s' "$user_pw" "$owner_pw" | LC_ALL=C /usr/bin/grep -q '[^ -~]'; then
+            "$alert_tool" --level caution --title "QuickPDF" \
+                "Use only ASCII characters in the password.
+
+PDF password encoding is not handled consistently across readers: an accented or non-Latin password often produces a file that cannot be reopened even with the correct password typed exactly, at every encryption strength. Letters a-z and A-Z, digits, spaces and punctuation are safe."
             exit 0
         fi
         if [ "$file_count" -eq 1 ]; then

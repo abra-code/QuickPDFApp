@@ -462,6 +462,32 @@
                       {
                         "type": "Text",
                         "properties": {
+                          "text": "Confirm",
+                          "foregroundStyle": "secondary",
+                          "frame": {
+                            "width": 120,
+                            "alignment": "trailing"
+                          }
+                        }
+                      },
+                      {
+                        "type": "SecureField",
+                        "id": 117,
+                        "properties": {
+                          "prompt": "type the user password again"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": {
+                      "spacing": 8
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
                           "text": "Owner password",
                           "frame": {
                             "width": 120,
@@ -477,6 +503,44 @@
                         }
                       }
                     ]
+                  },
+                  {
+                    "type": "HStack",
+                    "properties": {
+                      "spacing": 8
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "properties": {
+                          "text": "Confirm",
+                          "foregroundStyle": "secondary",
+                          "frame": {
+                            "width": 120,
+                            "alignment": "trailing"
+                          }
+                        }
+                      },
+                      {
+                        "type": "SecureField",
+                        "id": 119,
+                        "properties": {
+                          "prompt": "type the owner password again"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Text",
+                    "properties": {
+                      "text": "ASCII only. 128-bit and 40-bit store just the first 32 characters; 256-bit stores the whole password.",
+                      "foregroundStyle": "secondary",
+                      "font": "caption",
+                      "multilineTextAlignment": "leading",
+                      "frame": {
+                        "alignment": "leading"
+                      }
+                    }
                   },
                   {
                     "type": "HStack",
@@ -516,10 +580,13 @@
                     "type": "Text",
                     "id": 118,
                     "properties": {
-                      "text": "⚠ Weak encryption — easily broken; use 256-bit unless an old reader requires it.",
-                      "foregroundStyle": "orange",
+                      "text": "256-bit AES is stronger, but older readers may refuse it.",
+                      "foregroundStyle": "gray",
                       "font": "caption",
-                      "hidden": true
+                      "multilineTextAlignment": "leading",
+                      "frame": {
+                        "alignment": "leading"
+                      }
                     }
                   },
                   {

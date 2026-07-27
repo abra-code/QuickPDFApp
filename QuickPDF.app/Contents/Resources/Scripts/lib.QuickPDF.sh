@@ -28,14 +28,24 @@ OPT_DOWNSAMPLE_ID=76
 OPT_DPI_ID=77
 
 # Encrypt controls
+# Each password is typed twice: a mistyped user password is unrecoverable, since
+# nothing in the tool can report what was actually typed and no one can open the
+# result. The confirmation ids sit at 117/119 because the 110-119 encrypt band
+# was already laid out when they were added.
 ENC_USER_PW_ID=110
+ENC_USER_PW_CONFIRM_ID=117
 ENC_OWNER_PW_ID=111
+ENC_OWNER_PW_CONFIRM_ID=119
 ENC_BITS_ID=112
 ENC_ALLOW_PRINT_ID=113
 ENC_ALLOW_MODIFY_ID=114
 ENC_ALLOW_EXTRACT_ID=115
 ENC_ALLOW_ANNOTATE_ID=116
-ENC_WEAK_WARNING_ID=118
+ENC_STRENGTH_NOTICE_ID=118
+
+# Default key length. 128-bit AES is the compatibility floor that every reader
+# still in service accepts; 256-bit is stronger but older readers refuse it.
+ENC_DEFAULT_BITS=256
 
 # Decrypt controls
 DEC_PASSWORD_ID=120
@@ -344,13 +354,23 @@ build_qpdf_args() {
             local user_pw="$OMC_ACTIONUI_VIEW_110_VALUE"
             local owner_pw="$OMC_ACTIONUI_VIEW_111_VALUE"
             local bits="$OMC_ACTIONUI_VIEW_112_VALUE"
-            [ -z "$bits" ] && bits=256
+            [ -z "$bits" ] && bits=$ENC_DEFAULT_BITS
             # Empty owner password would leave restrictions trivially removable;
             # default it to the user password.
             [ -z "$owner_pw" ] && owner_pw="$user_pw"
 
-            # --allow-weak-crypto is a global flag: it must precede --encrypt
-            if [ "$bits" != "256" ]; then
+            # --allow-weak-crypto is a global flag: it must precede --encrypt.
+            # qpdf refuses RC4 specifically, not "anything below 256" - 128-bit
+            # AES needs no override. Scoping the flag to the only RC4 option we
+            # offer keeps it off the default path, so it stays an accurate
+            # signal that something genuinely weak is being written.
+            #
+            # This narrowing is only valid while --use-aes=y is emitted for
+            # 128-bit further down: without it qpdf writes RC4-128 and refuses
+            # the whole run with "refusing to write a file with RC4". The two
+            # lines are 20 apart in different branches - change either and the
+            # default path breaks. Tests/cases/encrypt-args.sh covers it.
+            if [ "$bits" = "40" ]; then
                 QPDF_ARGS+=(--allow-weak-crypto)
             fi
             QPDF_ARGS+=(--encrypt "--user-password=$user_pw" "--owner-password=$owner_pw" "--bits=$bits")
@@ -371,6 +391,10 @@ build_qpdf_args() {
                 [ "$allow_modify" = "true" ]   && QPDF_ARGS+=(--modify=all) || QPDF_ARGS+=(--modify=none)
                 [ "$allow_extract" = "true" ]  && QPDF_ARGS+=(--extract=y)  || QPDF_ARGS+=(--extract=n)
                 [ "$allow_annotate" = "true" ] && QPDF_ARGS+=(--annotate=y) || QPDF_ARGS+=(--annotate=n)
+                # Required, not cosmetic: 128-bit without this is RC4-128, which
+                # qpdf refuses outright unless --allow-weak-crypto is also
+                # passed - and that flag is now scoped to 40-bit only. See the
+                # note beside that scoping above.
                 [ "$bits" = "128" ] && QPDF_ARGS+=(--use-aes=y)
             fi
 
