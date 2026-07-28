@@ -292,7 +292,7 @@ verbose_echo "-----------------------------------"
 
 # ---- Phase 3: sign nested code bundles, deepest-first --------------------
 #
-# Discover every candidate bundle directory by recognised extension, then order
+# Discover every candidate bundle directory by recognized extension, then order
 # them deepest-first (most path components first) so children are sealed before
 # the parents that embed them.
 verbose_echo ""

@@ -63,7 +63,7 @@ expect_nogrep "encrypted: true" "$PDFUTIL" info "$TMP/p-dec.pdf"
 # Note qpdf's --show-encryption is deliberately lenient: it exits 0 on a bad
 # password and prints "Incorrect password supplied" followed by the encryption
 # dictionary, which it can read without the key. Any operation that needs to
-# decrypt content exits 2. Both behaviours are asserted so neither is mistaken for
+# decrypt content exits 2. Both behaviors are asserted so neither is mistaken for
 # the other.
 expect_code 2 "$PDFUTIL" text --password wrong "$enc"
 expect_grep "Incorrect password supplied" "$QPDF" --show-encryption --password=wrong "$enc"

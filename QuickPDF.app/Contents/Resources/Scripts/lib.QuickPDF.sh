@@ -482,7 +482,7 @@ run_qpdf() {
 # decoded the JPEGs and stored them losslessly. Newer builds notice that and
 # return the original bytes instead, which lands here as "not smaller" too.
 #
-# Comparing sizes covers both behaviours, so this works whichever pdfutil is
+# Comparing sizes covers both behaviors, so this works whichever pdfutil is
 # embedded rather than depending on the newer one being deployed first.
 #
 # Arguments: original path, reduced path
