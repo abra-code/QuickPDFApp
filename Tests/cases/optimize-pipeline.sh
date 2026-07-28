@@ -162,3 +162,117 @@ if out=$(optimize_file "$TMP/notapdf.pdf" "$TMP/opt-bad.pdf"); then bad_code=0; 
 if [ "$bad_code" = 0 ]; then
     fail "optimize_file reported success on a non-PDF input"
 fi
+
+# --- the image stage did not help, so qpdf's own optimizer gets a turn ------
+#
+# pdfutil exiting 0 does not mean pdfutil helped. Its Quartz filter re-encodes
+# only images it rescales, so it can hand back something no better than the
+# input; current builds notice a result that grew and return the original bytes
+# instead. Either way optimize_file must spot it and fall back rather than
+# passing the untouched images to the structural pass.
+
+# image_stage_helped is the predicate that decides. Test it on real files.
+printf 'aaaaaaaaaaaaaaaa' > "$TMP/isz-before"
+printf 'aaaa'             > "$TMP/isz-smaller"
+printf 'aaaaaaaaaaaaaaaa' > "$TMP/isz-equal"
+printf 'aaaaaaaaaaaaaaaaaaaaaaaa' > "$TMP/isz-bigger"
+: > "$TMP/isz-empty"
+if ! image_stage_helped "$TMP/isz-before" "$TMP/isz-smaller"; then
+    fail "image_stage_helped rejected a genuinely smaller file"
+fi
+if image_stage_helped "$TMP/isz-before" "$TMP/isz-equal"; then
+    fail "image_stage_helped accepted an equal-sized file"
+fi
+if image_stage_helped "$TMP/isz-before" "$TMP/isz-bigger"; then
+    fail "image_stage_helped accepted a larger file"
+fi
+if image_stage_helped "$TMP/isz-before" "$TMP/isz-empty"; then
+    fail "image_stage_helped accepted a 0-byte result"
+fi
+if image_stage_helped "$TMP/isz-before" "$TMP/isz-nonexistent"; then
+    fail "image_stage_helped accepted a missing result"
+fi
+
+# Whether the fallback is wired up is a question about the qpdf command line, not
+# about how well anything compressed - qpdf skips ICC/JPEG images, so on the very
+# scans where pdfutil declines it may save nothing at all. Stub both engines and
+# read the arguments the pipeline actually built.
+stub_dir="$TMP/stubs"
+/bin/mkdir -p "$stub_dir"
+
+# A pdfutil that "succeeds" while returning the input unchanged - what a current
+# build does when it declines its own result.
+cat > "$stub_dir/pdfutil-noop" <<'STUB'
+#!/bin/sh
+out=""; in=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -o) out="$2"; shift 2 ;;
+        -q|-r|-m) shift 2 ;;
+        reduce|--force) shift ;;
+        *) in="$1"; shift ;;
+    esac
+done
+cp "$in" "$out"
+STUB
+
+# ...and one that genuinely shrinks, to prove the fallback stays off when the
+# image stage did its job.
+cat > "$stub_dir/pdfutil-shrink" <<'STUB'
+#!/bin/sh
+out=""; in=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -o) out="$2"; shift 2 ;;
+        -q|-r|-m) shift 2 ;;
+        reduce|--force) shift ;;
+        *) in="$1"; shift ;;
+    esac
+done
+# Smaller than the input but still a real PDF, so the qpdf pass can read it.
+cp "$in" "$out"
+/usr/bin/truncate -s $(( $(/usr/bin/stat -f %z "$in") - 1 )) "$out"
+STUB
+
+# A qpdf that records its argument list and produces a valid output file.
+cat > "$stub_dir/qpdf-record" <<'STUB'
+#!/bin/sh
+printf '%s\n' "$*" > "$QPDF_ARGS_LOG"
+# The output path is the last argument; the input is the one before POST_ARGS.
+for a in "$@"; do last="$a"; done
+cp "$QPDF_STUB_SOURCE" "$last"
+STUB
+/bin/chmod +x "$stub_dir/pdfutil-noop" "$stub_dir/pdfutil-shrink" "$stub_dir/qpdf-record"
+
+export QPDF_ARGS_LOG="$TMP/qpdf-args.log"
+export QPDF_STUB_SOURCE="$FIX/text.pdf"
+real_qpdf="$QPDF"
+real_pdfutil="$PDFUTIL"
+
+# Recompress on, and the image stage returns the file unchanged: the qpdf pass
+# must pick up --optimize-images.
+QPDF="$stub_dir/qpdf-record"
+PDFUTIL="$stub_dir/pdfutil-noop"
+set_optimize_ui false true true 60 generate true true 150
+build_qpdf_args optimize
+ignored=$(optimize_file "$FIX/scan.pdf" "$TMP/fallback-on.pdf" 2>/dev/null)
+expect_grep "--optimize-images" /bin/cat "$QPDF_ARGS_LOG"
+expect_grep "--jpeg-quality=60" /bin/cat "$QPDF_ARGS_LOG"
+
+# The same run with an image stage that DID shrink must not add the flag: qpdf's
+# optimizer would then be re-encoding images pdfutil already handled.
+PDFUTIL="$stub_dir/pdfutil-shrink"
+build_qpdf_args optimize
+ignored=$(optimize_file "$FIX/scan.pdf" "$TMP/fallback-off.pdf" 2>/dev/null)
+expect_nogrep "--optimize-images" /bin/cat "$QPDF_ARGS_LOG"
+
+# And with the image stage switched off entirely there is nothing to fall back
+# from, so the flag must stay absent however the run goes.
+set_optimize_ui false true false 60 generate true true 150
+build_qpdf_args optimize
+ignored=$(optimize_file "$FIX/scan.pdf" "$TMP/fallback-nostage.pdf" 2>/dev/null)
+expect_nogrep "--optimize-images" /bin/cat "$QPDF_ARGS_LOG"
+
+QPDF="$real_qpdf"
+PDFUTIL="$real_pdfutil"
+unset QPDF_ARGS_LOG QPDF_STUB_SOURCE

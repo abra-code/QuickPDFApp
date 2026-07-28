@@ -473,6 +473,30 @@ run_qpdf() {
     "$QPDF" "${QPDF_ARGS[@]}" "$1" "${QPDF_POST_ARGS[@]}" "$2" 2>&1
 }
 
+# Return 0 when the image stage actually produced a smaller file.
+#
+# pdfutil exiting 0 is not the same as pdfutil having helped. Its Quartz filter
+# re-encodes only the images it RESCALES, so on a document whose images are
+# already small enough to leave alone it can hand back something no better than
+# the input - and older builds returned something several times LARGER, having
+# decoded the JPEGs and stored them losslessly. Newer builds notice that and
+# return the original bytes instead, which lands here as "not smaller" too.
+#
+# Comparing sizes covers both behaviours, so this works whichever pdfutil is
+# embedded rather than depending on the newer one being deployed first.
+#
+# Arguments: original path, reduced path
+image_stage_helped() {
+    local before after
+    before="$(/usr/bin/stat -f %z "$1" 2>/dev/null)"
+    after="$(/usr/bin/stat -f %z "$2" 2>/dev/null)"
+    [ -n "$before" ] && [ -n "$after" ] || return 1
+    # A 0-byte result means the run produced nothing usable, not a perfect
+    # compression; mktemp pre-creates the file, so this is reachable.
+    [ "$after" -gt 0 ] || return 1
+    [ "$after" -lt "$before" ]
+}
+
 # Full optimize pipeline for one file: an optional pdfutil reduce image stage
 # followed by the qpdf structural pass, including the linearize keep-if-smaller
 # two-pass. Writes the result to $2 (a caller-provided temp path). Echoes the
@@ -498,7 +522,26 @@ optimize_file() {
             printf 'pdfutil reduce: %s\n' "$(printf '%s' "$pr_out" | /usr/bin/head -1)"
             return 2
         fi
-        src="$reduced"
+        if image_stage_helped "$input" "$reduced"; then
+            src="$reduced"
+        else
+            # pdfutil could not improve on these images, so fall back to qpdf's
+            # own image optimizer for this file. It is the weaker tool - it skips
+            # ICC/JPEG scans and never downsamples, which is exactly why the
+            # image stage moved to pdfutil in the first place - but on the
+            # documents pdfutil declines it is the one that still has something
+            # to offer, and the alternative is shipping the images untouched.
+            #
+            # Added to the structural pass that is about to run rather than
+            # spawned as a third invocation: qpdf is going to open and rewrite
+            # this file either way. QPDF_ARGS is safe to mutate here because
+            # optimize_file runs inside a command substitution (see above), the
+            # same reason --linearize can be appended below.
+            /bin/rm -f "$reduced"
+            reduced=""
+            QPDF_ARGS+=(--optimize-images "--jpeg-quality=$QPDF_JPEG_QUALITY" \
+                        --oi-min-width=64 --oi-min-height=64)
+        fi
     fi
 
     local out; out="$(run_qpdf "$src" "$final_out")"
