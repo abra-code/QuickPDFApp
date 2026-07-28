@@ -1,4 +1,5 @@
 # QuickPDF
+![QuickPDF Icon](Icon/QuickPDF-macOS-256x256@1x.png)
 
 A native macOS utility for everyday PDF tasks — optimize, split, merge, extract, rotate, encrypt, decrypt, repair, strip metadata, and flatten — driven by the [qpdf](https://github.com/qpdf/qpdf) engine with a Quartz-based image reducer for scanned documents. QuickPDF processes one file or a whole batch of files and folders in a single pass.
 
