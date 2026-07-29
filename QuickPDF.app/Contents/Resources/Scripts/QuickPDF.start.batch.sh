@@ -22,12 +22,99 @@ if [ -z "$file_paths" ]; then
     exit 0
 fi
 
-operation="$OMC_ACTIONUI_VIEW_60_VALUE"
-[ -z "$operation" ] && operation="optimize"
+operation="$(current_operation)"
 
 # Count files early. We use this to decide between single-document "Save As"
 # panel (most 1:1 operations with exactly one input) vs. batch folder selection.
 file_count=$(printf '%s\n' "$file_paths" | /usr/bin/grep -c .)
+
+# Structure pre-flight.
+#
+# Optimize's image stage runs `pdfutil reduce`, which redraws every page and so
+# discards the outline, annotations, links and form fields. It exits 0 having
+# done that, and the run then reports a smaller file as a plain success - so
+# nothing downstream can raise this, and the user's first sign of it is a
+# document whose bookmarks are gone.
+#
+# Asked here, before any destination dialog, because the alternative is letting
+# the user pick a folder for a run they would not have started. It is a question
+# rather than a refusal: dropping the structure is often fine, and the only
+# thing missing was knowing that THESE files had something to lose. That is also
+# why it checks the actual documents instead of warning whenever the toggle is
+# on - a permanent warning on the default settings is one nobody reads.
+if optimize_redraws; then
+    # `pdfutil info` costs roughly 100 ms a file: invisible for a handful, a
+    # silent multi-second pause on a long list. Say what is happening first.
+    if [ "$file_count" -gt 2 ]; then
+        set_summary "Checking the file list..."
+    fi
+
+    risk_count=0
+    risk_name=""
+    risk_kind=""
+    while IFS= read -r risk_path; do
+        [ -z "$risk_path" ] && continue
+        [ -e "$risk_path" ] || continue
+        file_risk="$(pdf_structure_at_risk "$risk_path")"
+        if [ -n "$file_risk" ]; then
+            risk_count=$((risk_count + 1))
+            if [ -z "$risk_name" ]; then
+                risk_name="$(/usr/bin/basename "$risk_path")"
+                risk_kind="$file_risk"
+            fi
+        fi
+    done <<< "$file_paths"
+
+    if [ "$risk_count" -gt 0 ]; then
+        if [ "$risk_count" -eq 1 ]; then
+            risk_desc="\"${risk_name}\" has $(structure_risk_phrase "$risk_kind")"
+        elif [ "$risk_count" -eq "$file_count" ]; then
+            # The files can differ in what each one carries, so the summary
+            # phrase covers the union rather than claiming they all match the
+            # first one found.
+            risk_desc="all ${file_count} files have an outline, annotations or form fields"
+        else
+            risk_desc="${risk_count} of the ${file_count} files have an outline, annotations or form fields, starting with \"${risk_name}\""
+        fi
+
+        # Cancel is in --ok, which reads backwards and is deliberate. The alert
+        # tool binds --ok (-b0) to the DEFAULT button and offers no way to move
+        # the default elsewhere, so whichever action sits there is the one a
+        # stray Return press chooses. This warning is about silent, permanent
+        # loss, so the safe answer takes that slot.
+        #
+        # The exit codes follow the BUTTONS, not the words: 0 is --ok, which
+        # here means Cancel, and 1 is --cancel, which here means Continue.
+        "$alert_tool" --level caution --title "QuickPDF" \
+            --ok "Cancel" --cancel "Continue" \
+            "Recompressing images redraws the page content, so annotations, links, the outline and form fields are not carried over.
+
+Right now ${risk_desc}.
+
+Turn off \"Recompress images\" to keep them, at the cost of a larger file.
+
+Continue anyway?"
+        alert_rc=$?
+        case "$alert_rc" in
+            1)
+                # Continue: fall through to the routing below.
+                ;;
+            0)
+                set_summary "Canceled.
+Optimize would have discarded structure in ${risk_count} of ${file_count} file(s)."
+                exit 0
+                ;;
+            *)
+                # 2 other, 3 timeout, 255 the tool itself failed. Treat anything
+                # that is not an explicit Continue as a stop - but say which it
+                # was, rather than reporting a cancel the user never chose.
+                set_summary "Optimize did not run: the confirmation dialog returned ${alert_rc}.
+${risk_count} of ${file_count} file(s) would have lost an outline, annotations or form fields."
+                exit 0
+                ;;
+        esac
+    fi
+fi
 
 case "$operation" in
     encrypt)

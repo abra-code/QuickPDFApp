@@ -78,7 +78,7 @@ fi
 # Generated or pre-existing, the fixtures the cases name have to be there. A
 # missing one otherwise surfaces as a pile of unrelated assertion failures
 # pointing at the tools rather than at the empty file they were handed.
-for _f in text.pdf scan.pdf form-filled.pdf; do
+for _f in text.pdf scan.pdf form-filled.pdf outlined.pdf; do
     [ -s "$FIX/$_f" ] || die "fixture $FIX/$_f is missing or empty - delete $FIX and re-run to regenerate"
 done
 

@@ -3,9 +3,14 @@
 //
 //     swift Tests/make-fixtures.swift Tests/fixtures
 //
-// Fixtures are gitignored; only this generator is committed. Nothing
-// nondeterministic (dates, UUIDs) is written into the PDFs, so a regenerated
-// fixture compares equal to the previous one.
+// Fixtures are gitignored; only this generator is committed, so every run
+// regenerates them.
+//
+// They are NOT byte-reproducible: both CGContext.closePDF() and
+// PDFDocument.write(to:) stamp a creation and modification date, so two runs a
+// second apart differ byte for byte at identical sizes. Nothing checksums a
+// fixture, and every assertion is about content rather than bytes, so this only
+// matters if someone later tries to cache or diff them.
 //
 // Adapted from the generator in the pdfutil repo, trimmed to what the cross-tool
 // cases here actually exercise: a text document, an image-only "scan" for the
@@ -153,6 +158,41 @@ do {
     page.addAnnotation(name)
 
     doc.write(to: out("form-filled.pdf"))
+}
+
+// outlined.pdf - three pages carrying a real document outline, and nothing else
+// of interest. The Optimize structure pre-flight reports an outline separately
+// from annotations, and no other fixture has one, so without this the "outline"
+// branch of pdf_structure_at_risk would never be exercised.
+do {
+    let data = NSMutableData()
+    guard let consumer = CGDataConsumer(data: data as CFMutableData) else {
+        fatalError("cannot create data consumer")
+    }
+    var box = letter
+    guard let ctx = CGContext(consumer: consumer, mediaBox: &box, nil) else {
+        fatalError("cannot create outline base context")
+    }
+    for i in 1...3 {
+        ctx.beginPDFPage(nil)
+        drawLine(ctx, "Chapter \(i)", x: 72, y: 720, size: 18)
+        ctx.endPDFPage()
+    }
+    ctx.closePDF()
+
+    guard let doc = PDFDocument(data: data as Data) else {
+        fatalError("cannot build outlined base document")
+    }
+    let root = PDFOutline()
+    for i in 0..<3 {
+        guard let page = doc.page(at: i) else { continue }
+        let item = PDFOutline()
+        item.label = "Chapter \(i + 1)"
+        item.destination = PDFDestination(page: page, at: CGPoint(x: 0, y: 792))
+        root.insertChild(item, at: i)
+    }
+    doc.outlineRoot = root
+    doc.write(to: out("outlined.pdf"))
 }
 
 FileHandle.standardError.write(Data("fixtures written to \(outDir.path)\n".utf8))

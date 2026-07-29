@@ -333,6 +333,84 @@ clamp_dpi() {
     echo "$d"
 }
 
+# Return 0 when Optimize will redraw page content for the current settings.
+#
+# Only the pdfutil reduce image stage does this. The qpdf structural pass keeps
+# everything - verified by running the same flags plus --optimize-images over a
+# document with an outline and one with form fields and re-reading both, which
+# came back intact. So the question is exactly "is the image stage switched on".
+#
+# Redrawing is the point here, not damage in general: Flatten removes form
+# fields and Remove metadata can drop the structure tree, and both are the
+# operation doing what its name says. This guard is for the case where the user
+# asked for a smaller file and would lose an outline they never thought about.
+#
+# Note this can over-warn by design. optimize_file falls back to qpdf's own
+# --optimize-images when pdfutil declines to improve the file, and THAT path
+# preserves structure - but which way it goes is only known after pdfutil has
+# run, which is after the destination has been chosen. Warning on the settings
+# rather than the outcome is the only version that can happen before the user
+# commits to a location.
+optimize_redraws() {
+    [ "$(current_operation)" = "optimize" ] && [ "$OMC_ACTIONUI_VIEW_72_VALUE" = "true" ]
+}
+
+# Echo the operation tag currently selected, defaulting to the picker's first
+# option. Empty means the window has not reported a value yet, which is what an
+# untouched picker sends.
+current_operation() {
+    local op="$OMC_ACTIONUI_VIEW_60_VALUE"
+    [ -z "$op" ] && op="optimize"
+    echo "$op"
+}
+
+# Echo what a redraw would discard from a document: "outline", "annotations",
+# "outline annotations", or "" when there is nothing to lose.
+#
+# Read from the embedded pdfutil's `info`, which is already in the bundle and
+# already reports both facts:
+#
+#   outline items: 3                          -> an outline
+#   page 1: 612x792 pt, text, 2 annotations   -> annotations or form fields
+#
+# `info` counts form fields as annotations and does not separate them, so the
+# wording never claims to know which it found. The page-line anchor matters:
+# matching "annotations" anywhere in the output would fire on a document whose
+# own path happens to contain the word, since `info` echoes the path back.
+#
+# An unreadable document - locked, corrupt, not a PDF - yields "", which reads as
+# "nothing at risk" and lets the run proceed to the real error. That is the right
+# direction: a guard should not block work over a question it could not answer.
+#
+# Arguments: path
+pdf_structure_at_risk() {
+    local info="$("$PDFUTIL" info "$1" 2>/dev/null)"
+    [ -z "$info" ] && return 0
+
+    local found=""
+    local items="$(printf '%s\n' "$info" | /usr/bin/awk -F': ' '$1 == "outline items" { print $2; exit }')"
+    if [ -n "$items" ] && [ "$items" != "0" ]; then
+        found="outline"
+    fi
+    # pdfutil always writes the plural, including "1 annotations", so there is
+    # no singular form to match as well.
+    if printf '%s\n' "$info" \
+        | /usr/bin/awk '/^page [0-9]+: .* annotations/ { f = 1 } END { exit !f }'; then
+        found="${found:+$found }annotations"
+    fi
+    echo "$found"
+}
+
+# Turn what pdf_structure_at_risk found into a phrase completing "<FILE> has ...".
+structure_risk_phrase() {
+    case "$1" in
+        "outline annotations") echo "an outline and annotations or form fields" ;;
+        "outline")             echo "an outline" ;;
+        "annotations")         echo "annotations or form fields" ;;
+        *)                     echo "structure that will not survive" ;;
+    esac
+}
+
 # Build the qpdf argument lists for the current operation into globals:
 #   QPDF_ARGS      - flags placed before the input path
 #   QPDF_POST_ARGS - flags placed between the input and output paths
@@ -515,9 +593,8 @@ run_qpdf() {
 #
 # Arguments: original path, reduced path
 image_stage_helped() {
-    local before after
-    before="$(/usr/bin/stat -f %z "$1" 2>/dev/null)"
-    after="$(/usr/bin/stat -f %z "$2" 2>/dev/null)"
+    local before="$(/usr/bin/stat -f %z "$1" 2>/dev/null)"
+    local after="$(/usr/bin/stat -f %z "$2" 2>/dev/null)"
     [ -n "$before" ] && [ -n "$after" ] || return 1
     # A 0-byte result means the run produced nothing usable, not a perfect
     # compression; mktemp pre-creates the file, so this is reachable.
@@ -535,15 +612,14 @@ image_stage_helped() {
 # to the subshell; file writes/moves still take effect.
 optimize_file() {
     local input="$1" final_out="$2"
-    local work_dir; work_dir="$(/usr/bin/dirname "$final_out")"
+    local work_dir="$(/usr/bin/dirname "$final_out")"
     local src="$input" reduced=""
 
     if [ "$QPDF_RECOMPRESS_IMAGES" = "1" ]; then
         reduced="$(/usr/bin/mktemp "$work_dir/.quickpdf.XXXXXX")"
-        local pr_out
         # pdfutil reduce edits in place by default and takes the output via -o;
         # mktemp pre-created $reduced (0 bytes) so --force is needed to overwrite it.
-        pr_out="$("$PDFUTIL" reduce -q "$QPDF_JPEG_QUALITY" -r "$QPDF_DOWNSAMPLE_DPI" \
+        local pr_out="$("$PDFUTIL" reduce -q "$QPDF_JPEG_QUALITY" -r "$QPDF_DOWNSAMPLE_DPI" \
                   --force -o "$reduced" "$input" 2>&1)"
         if [ $? -ne 0 ]; then
             /bin/rm -f "$reduced"
@@ -572,18 +648,17 @@ optimize_file() {
         fi
     fi
 
-    local out; out="$(run_qpdf "$src" "$final_out")"
+    local out="$(run_qpdf "$src" "$final_out")"
     local code=$?
 
     if [ "$QPDF_LINEARIZE" = "1" ] && [ $code -ne 2 ]; then
-        local tmp_linear; tmp_linear="$(/usr/bin/mktemp "$work_dir/.quickpdf.XXXXXX")"
+        local tmp_linear="$(/usr/bin/mktemp "$work_dir/.quickpdf.XXXXXX")"
         QPDF_ARGS+=(--linearize)
-        local lin_out; lin_out="$(run_qpdf "$src" "$tmp_linear")"
+        local lin_out="$(run_qpdf "$src" "$tmp_linear")"
         local lin_code=$?
         if [ $lin_code -ne 2 ]; then
-            local plain_size linear_size
-            plain_size="$(/usr/bin/stat -f %z "$final_out")"
-            linear_size="$(/usr/bin/stat -f %z "$tmp_linear")"
+            local plain_size="$(/usr/bin/stat -f %z "$final_out")"
+            local linear_size="$(/usr/bin/stat -f %z "$tmp_linear")"
             if [ "$linear_size" -le "$plain_size" ]; then
                 /bin/mv -f "$tmp_linear" "$final_out"
                 # The delivered file now comes from the linearized pass, so
