@@ -43,8 +43,36 @@ ENC_ALLOW_EXTRACT_ID=115
 ENC_ALLOW_ANNOTATE_ID=116
 ENC_STRENGTH_NOTICE_ID=118
 
-# Default key length. 128-bit AES is the compatibility floor that every reader
-# still in service accepts; 256-bit is stronger but older readers refuse it.
+# Default key length. 256-bit AES, for two reasons that both survived testing:
+#
+#   Compatibility is no longer the objection. PDFKit - the engine behind Preview
+#   and Quick Look - opens every AES-256 variant on current macOS, and Adobe
+#   Reader has handled it since Reader X in 2010. Only Reader 9 and earlier are
+#   limited, and that version wants the flawed R5 flavor rather than the R6 one
+#   qpdf writes.
+#
+#   128-bit silently truncates the password at 32 characters. Measured against
+#   the bundled qpdf: a 44-character password produces a 128-bit file that opens
+#   with the bare 32-character prefix, and with any OTHER 44-character password
+#   sharing those 32 characters. The 256-bit file refuses both. A default that
+#   quietly discards part of what the user typed is the worse failure, and it is
+#   the reason 128 now carries a notice of its own.
+#
+# This value must stay in step with the FIRST option of picker 112 in
+# QuickPDF.json: ActionUI selects a picker's first option when none is declared,
+# and an untouched picker then reports "" rather than a tag, so both spellings of
+# "the user did not choose" have to land on the same key length. They disagreed
+# between 2026-07-26 and 2026-07-28 - the constant said 256 while the comment,
+# the notice handler and Tests/cases/encrypt-args.sh all said 128 - and the suite
+# failed for those two days without anyone reading it.
+#
+# Only ONE direction of that drift is caught automatically. encrypt-args.sh
+# drives build_qpdf_args with an empty picker value, so changing this constant
+# alone turns the suite red; nothing in the suite reads QuickPDF.json, so
+# reordering the picker alone leaves it green while the window offers one
+# strength and the file gets another. Until the test harness can read the
+# window's declared defaults, changing either one means checking the other by
+# hand.
 ENC_DEFAULT_BITS=256
 
 # Decrypt controls

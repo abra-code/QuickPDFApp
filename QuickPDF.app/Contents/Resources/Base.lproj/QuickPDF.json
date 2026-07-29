@@ -533,7 +533,7 @@
                   {
                     "type": "Text",
                     "properties": {
-                      "text": "ASCII only. 128-bit and 40-bit store just the first 32 characters; 256-bit stores the whole password.",
+                      "text": "ASCII only, 127 characters at most. 128-bit and 40-bit store just the first 32.",
                       "foregroundStyle": "secondary",
                       "font": "caption",
                       "multilineTextAlignment": "leading",
@@ -560,7 +560,7 @@
                               "tag": "256"
                             },
                             {
-                              "title": "128-bit AES (legacy)",
+                              "title": "128-bit AES (legacy readers)",
                               "tag": "128"
                             },
                             {
@@ -580,7 +580,8 @@
                     "type": "Text",
                     "id": 118,
                     "properties": {
-                      "text": "256-bit AES is stronger, but older readers may refuse it.",
+                      "text": "",
+                      "hidden": true,
                       "foregroundStyle": "gray",
                       "font": "caption",
                       "multilineTextAlignment": "leading",

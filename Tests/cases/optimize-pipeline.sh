@@ -198,7 +198,7 @@ fi
 # scans where pdfutil declines it may save nothing at all. Stub both engines and
 # read the arguments the pipeline actually built.
 stub_dir="$TMP/stubs"
-/bin/mkdir -p "$stub_dir"
+require /bin/mkdir -p "$stub_dir" || return
 
 # A pdfutil that "succeeds" while returning the input unchanged - what a current
 # build does when it declines its own result.
@@ -242,7 +242,10 @@ printf '%s\n' "$*" > "$QPDF_ARGS_LOG"
 for a in "$@"; do last="$a"; done
 cp "$QPDF_STUB_SOURCE" "$last"
 STUB
-/bin/chmod +x "$stub_dir/pdfutil-noop" "$stub_dir/pdfutil-shrink" "$stub_dir/qpdf-record"
+# A stub that is not executable fails to run, and the assertions below read the
+# argument log it never wrote - which is an absent file, not a wrong one, so they
+# would pass on emptiness.
+require /bin/chmod +x "$stub_dir/pdfutil-noop" "$stub_dir/pdfutil-shrink" "$stub_dir/qpdf-record" || return
 
 export QPDF_ARGS_LOG="$TMP/qpdf-args.log"
 export QPDF_STUB_SOURCE="$FIX/text.pdf"

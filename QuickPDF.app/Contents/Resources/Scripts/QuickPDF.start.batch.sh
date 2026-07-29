@@ -90,6 +90,33 @@ Retype both fields and try again."
 PDF password encoding is not handled consistently across readers: an accented or non-Latin password often produces a file that cannot be reopened even with the correct password typed exactly, at every encryption strength. Letters a-z and A-Z, digits, spaces and punctuation are safe."
             exit 0
         fi
+
+        # Length, for the same reason as the ASCII check above and with the same
+        # failure mode. Measured against the bundled qpdf 12.3.2, encrypting and
+        # then reopening with the exact password that was used:
+        #
+        #   126 characters   256: opens    128: opens
+        #   127 characters   256: opens    128: opens
+        #   128 characters   256: FAILS    128: opens
+        #   140 characters   256: FAILS    128: opens
+        #
+        # AES-256 (R6) stores at most 127 bytes. Past that qpdf writes the file,
+        # exits 0, and prints NOTHING on either stream - and the result cannot be
+        # opened by qpdf or by PDFKit with the password that created it. Since
+        # 256-bit is the default, that is the default path silently producing a
+        # permanently unopenable document.
+        #
+        # 40- and 128-bit do not have the cliff; they truncate at 32 characters
+        # and still open. The check is not scoped to 256 anyway, because a
+        # password whose last 100 characters are discarded is not what the user
+        # asked for either, and one rule is easier to act on than a table.
+        if [ ${#user_pw} -gt 127 ] || [ ${#owner_pw} -gt 127 ]; then
+            "$alert_tool" --level caution --title "QuickPDF" \
+                "Use a password of 127 characters or fewer.
+
+256-bit AES stores at most 127 characters, and qpdf gives no warning when a longer one is used - it writes a file that cannot be reopened even with the correct password typed exactly. The weaker strengths keep only the first 32 characters."
+            exit 0
+        fi
         if [ "$file_count" -eq 1 ]; then
             "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "QuickPDF.run.single"
         else

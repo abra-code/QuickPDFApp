@@ -8,7 +8,10 @@
 # qpdf --check exit codes: 0 clean, 3 warnings only, 2 errors.
 
 V="$TMP/verbs"
-mkdir -p "$V"
+# Checked: every negative assertion below (expect_nogrep_all "ERROR" ...) passes
+# vacuously against a file that was never written, so an unchecked mkdir here
+# would turn this whole case green rather than red.
+require mkdir -p "$V" || return
 
 # check_verb <label> <output-file> <pdfutil args...>
 # Runs the verb, then requires a completely clean qpdf --check on its output.
