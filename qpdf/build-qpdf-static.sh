@@ -90,6 +90,7 @@ download() {
     local output=$2
     echo "⬇️  Downloading: $output"
 
+    local i
     for i in {1..3}; do
         /usr/bin/curl -L --fail --silent --show-error -o "$output" "$url"
         if [[ $? -eq 0 ]]; then
@@ -133,6 +134,7 @@ _tags_api_latest() {
     json=$(/usr/bin/curl -s --fail --max-time 10 \
         "https://api.github.com/repos/$repo/tags?per_page=20" 2>/dev/null || echo "")
     local tag
+    local line
     while IFS= read -r line; do
         if [[ "$line" =~ \"name\":\ *\"($pattern)\" ]]; then
             echo "${BASH_REMATCH[1]}"

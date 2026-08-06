@@ -152,6 +152,12 @@ is_pdf_file() {
 add_files_to_table() {
     local new_paths="$1"
     local buffer=""
+    # Loop variables, declared so they stay in this function. Both loops below
+    # read from a here-string rather than a pipeline, so they run in the current
+    # shell and would otherwise assign at global scope. FIRST_FILE_PATH and
+    # LIST_WAS_EMPTY below are global on purpose - they are this function's
+    # documented outputs - and must stay that way.
+    local file_path found_file
 
     # Outputs read by the caller via select_first_or_resync:
     #   LIST_WAS_EMPTY  1 if the table had no rows before this add
@@ -619,7 +625,12 @@ optimize_file() {
         reduced="$(/usr/bin/mktemp "$work_dir/.quickpdf.XXXXXX")"
         # pdfutil reduce edits in place by default and takes the output via -o;
         # mktemp pre-created $reduced (0 bytes) so --force is needed to overwrite it.
-        local pr_out="$("$PDFUTIL" reduce -q "$QPDF_JPEG_QUALITY" -r "$QPDF_DOWNSAMPLE_DPI" \
+        # Declared apart from the assignment on purpose: `local x=$(cmd)` makes
+        # the next $? read local's own status, which is always 0. Combined, this
+        # error branch never fired and a failed reduce was treated as a success,
+        # handing the half-written $reduced file to the structural pass below.
+        local pr_out
+        pr_out="$("$PDFUTIL" reduce -q "$QPDF_JPEG_QUALITY" -r "$QPDF_DOWNSAMPLE_DPI" \
                   --force -o "$reduced" "$input" 2>&1)"
         if [ $? -ne 0 ]; then
             /bin/rm -f "$reduced"
@@ -648,13 +659,19 @@ optimize_file() {
         fi
     fi
 
-    local out="$(run_qpdf "$src" "$final_out")"
+    # out is declared apart from its assignment for the same reason as above:
+    # combined, $code was always 0, so optimize_file returned success even when
+    # qpdf exited 2 (fatal error), and the "$code -ne 2" guard below always took
+    # the no-fatal-error branch.
+    local out
+    out="$(run_qpdf "$src" "$final_out")"
     local code=$?
 
     if [ "$QPDF_LINEARIZE" = "1" ] && [ $code -ne 2 ]; then
         local tmp_linear="$(/usr/bin/mktemp "$work_dir/.quickpdf.XXXXXX")"
         QPDF_ARGS+=(--linearize)
-        local lin_out="$(run_qpdf "$src" "$tmp_linear")"
+        local lin_out
+        lin_out="$(run_qpdf "$src" "$tmp_linear")"
         local lin_code=$?
         if [ $lin_code -ne 2 ]; then
             local plain_size="$(/usr/bin/stat -f %z "$final_out")"
