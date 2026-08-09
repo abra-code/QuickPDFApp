@@ -1,13 +1,20 @@
 #!/bin/bash
-# test.sh - cross-tool tests for the QuickPDF app bundle.
+# test.sh - engine tests for the two binaries QuickPDF embeds.
 #
-# QuickPDF embeds two independent PDF engines, qpdf and pdfutil, and its Optimize
-# operation runs them as a pipeline. This suite tests what neither tool's own test
-# suite structurally can: that the two agree with each other, that each can read
-# what the other writes, and that the app's real pipeline works end to end.
+# QuickPDF ships two independent PDF engines, qpdf and pdfutil. This suite tests
+# what neither tool's own suite structurally can: that the two agree with each
+# other, that each can read what the other writes, and that the specific engine
+# behaviors the applet is designed around are still true.
 #
-# Bash, not sh: the app's lib.QuickPDF.sh uses bash arrays, and the optimize case
-# sources it to drive the same code path the app runs.
+# It does NOT test the applet. Everything that was once here about argument
+# construction, the Optimize pipeline and the operation-dependent guards now
+# lives in the omctest suite (Tests/*.test.sh, run by
+# `appletbuilder test QuickPDF.app`), which drives the real handlers against a
+# real window instead of sourcing the libraries and calling functions.
+#
+# The dividing line is enforced below rather than left to habit: no case file
+# here may source the applet's libraries. A case that needs to know what the app
+# would do with a value is an omctest case.
 #
 # Deliberately NO `set -e`. A test runner is the worst possible place for it: it
 # ends the run at the first command that returns non-zero, which in a suite is a
@@ -36,7 +43,6 @@ cd "$(dirname "$0")" || die "cannot cd to the script's directory"
 APP="${QUICKPDF_APP:-$PWD/QuickPDF.app}"
 QPDF="$APP/Contents/Helpers/qpdf"
 PDFUTIL="$APP/Contents/Helpers/pdfutil"
-LIB="$APP/Contents/Resources/Scripts/lib.QuickPDF.sh"
 
 FIX="Tests/fixtures"
 TMP="Tests/tmp"
@@ -48,7 +54,6 @@ TMP="Tests/tmp"
 missing=""
 [ -x "$QPDF" ]    || missing="$missing\n  qpdf:    $QPDF"
 [ -x "$PDFUTIL" ] || missing="$missing\n  pdfutil: $PDFUTIL"
-[ -f "$LIB" ]     || missing="$missing\n  lib:     $LIB"
 if [ -n "$missing" ]; then
     printf 'ERROR: the app bundle is not populated. Missing:%b\n' "$missing" >&2
     echo "" >&2
@@ -164,11 +169,9 @@ qpdf_check_code() {
     "$QPDF" --check "$@" >/dev/null 2>&1 && echo 0 || echo $?
 }
 
-# Each case runs in a SUBSHELL so it cannot leak into the next one. The
-# isolation is not academic: optimize-pipeline.sh sources lib.QuickPDF.sh at its
-# top level, and the library reassigns $QPDF and $PDFUTIL from the bundle path -
-# without the subshell every later case would be measuring whichever binaries the
-# library resolved rather than the ones this runner checked.
+# Each case runs in a SUBSHELL so it cannot leak into the next one - a stray
+# variable or a redefined helper from one case must not change what the next one
+# measures.
 #
 # Completion is detected with a MARKER, not with the case's exit status. Without
 # `set -e` a sourced file's status is just the status of its last command, which
@@ -196,17 +199,44 @@ shopt -s nullglob
 casefiles=(Tests/cases/*.sh)
 eval "$nullglob_state"
 
+# The dividing line between this suite and the omctest one, enforced rather than
+# documented. A case that sources lib.QuickPDF.sh is testing the applet, and the
+# applet is tested by `appletbuilder test QuickPDF.app` against a real window -
+# where the control defaults are the ones the document declares, instead of
+# whatever the case happened to export.
+#
+# Checked by asking whether the library's functions are DEFINED after the case
+# ran, not by grepping for a source line. The grep version of this missed the
+# only spelling that has ever actually appeared: every case that used to source
+# the library wrote `. "$LIB"`, naming a variable rather than the file, so a
+# pattern looking for "lib.QuickPDF.sh" on the source line matched none of them.
+# Asking the shell what got defined cannot be out-spelled.
+#
+# It is a signpost for the next person adding a case, not a sandbox.
+sourced_the_applet() {
+    command -v build_qpdf_args >/dev/null 2>&1 \
+        || command -v optimize_file >/dev/null 2>&1
+}
+
 CASE_DONE="$TMP/.case-complete"
+LEAKED="$TMP/.case-sourced-applet"
 ran=0
 for casefile in "${casefiles[@]}"; do
     echo "== $casefile =="
-    rm -f "$CASE_DONE"
-    ( . "$casefile"; : > "$CASE_DONE" )
+    rm -f "$CASE_DONE" "$LEAKED"
+    # The guard runs INSIDE the case's own subshell, which is the only place the
+    # definitions exist - they die with it, which is exactly why a check after
+    # the fact would always find nothing.
+    ( . "$casefile"; sourced_the_applet && : > "$LEAKED"; : > "$CASE_DONE" )
+    if [ -e "$LEAKED" ]; then
+        fail "$casefile sources the applet's library - applet logic belongs in the omctest suite (Tests/*.test.sh)"
+    fi
     if [ ! -e "$CASE_DONE" ]; then
         fail "$casefile called exit before reaching its end - its remaining assertions never ran"
     fi
     ran=$((ran + 1))
 done
+rm -f "$LEAKED"
 rm -f "$CASE_DONE"
 
 # Re-globbed and compared by CONTENT, not by count: one file added and another

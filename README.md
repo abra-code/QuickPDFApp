@@ -74,26 +74,42 @@ pdfutil is built from a sibling `../pdfutil` checkout (the script offers to clon
 
 ## Tests
 
-`./test.sh` runs the cross-tool suite: the tests that only make sense here, where
-both engines ship in one bundle and Optimize runs them as a pipeline.
+There are two suites, split by what they test rather than by how they run.
 
 ```bash
-./test.sh                                        # test this repo's QuickPDF.app
-QUICKPDF_APP=/Applications/QuickPDF.app ./test.sh # test an installed bundle
+appletbuilder test QuickPDF.app                   # the applet
+./test.sh                                         # the two embedded engines
+QUICKPDF_APP=/Applications/QuickPDF.app ./test.sh # engines in an installed bundle
 ```
 
-Both helpers are **required** — they are the subject of the tests, so a missing
+**The applet - `appletbuilder test QuickPDF.app`.** Runs `Tests/*.test.sh` under
+OMC's omctest harness, which dispatches the real handlers against a mock window
+and records what they did to it. This is where the window, the file list, the
+Save button's routing, the runners and the argument builder are tested. Every
+section starts from the control defaults declared in `QuickPDF.json`, so what
+the code sees is what a user's window holds - a suite written against a blanked
+window would describe an Optimize run nobody performs.
+
+**The engines - `./test.sh`.** Runs `Tests/cases/*.sh`: what neither tool's own
+suite structurally can ask, because only here do both engines ship in one
+bundle. No case file may source `lib.QuickPDF.sh`, and the runner fails if one
+does; anything that needs to know what the *app* would do belongs in the omctest
+suite.
+
+Both helpers are **required** - they are the subject of `./test.sh`, so a missing
 binary is a hard error rather than a skip. Run `./update_quickpdf.sh --with-qpdf`
 first on a fresh checkout, since `Contents/Helpers/` is gitignored. Fixtures are
 generated on first run by `Tests/make-fixtures.swift` (needs `swift`) and are
-gitignored; only the generator is committed.
+gitignored; only the generator is committed. Both suites share them.
 
 | Case | What it covers |
 |---|---|
 | `helpers.sh` | Both binaries universal, statically self-contained, signed. Includes a regression guard for the RC4 / `/R 2-4` capability that depends on OpenSSL's legacy provider being built into qpdf. |
 | `encryption-interop.sh` | Each engine reads what the other writes, across 40-bit (`/R 2`), 128-bit (`/R 3`), and 256-bit (`/R 6`), plus pdfutil's `/R 4` AES-128 in the other direction. Also the permission reporting where the two tools genuinely disagree. |
+| `encryption-limits.sh` | The qpdf behaviors the app's guards exist for: the 32-character key-derivation cliff at 40- and 128-bit, the silent 127-byte password limit at 256-bit, and qpdf's refusal to write RC4 without being told to. |
 | `structure.sh` | `qpdf --check` as an independent structural opinion on the output of every pdfutil verb, plus page-count and content agreement. |
-| `optimize-pipeline.sh` | The app's real `build_qpdf_args` and `optimize_file`, sourced from `lib.QuickPDF.sh`, driven through `OMC_ACTIONUI_VIEW_*` state. Covers the two-stage scan reduction, the qpdf-only text path, linearize keep-if-smaller, and failure handling. |
+| `redraw-damage.sh` | What each engine destroys: `pdfutil reduce` discards the outline and annotations, the qpdf structural pass keeps them. This is the claim the app's redraw warning rests on, so without it that warning is unfalsifiable. |
+| `two-engine-rationale.sh` | Why the bundle ships two engines at all: qpdf alone barely shrinks a JPEG scan, `pdfutil reduce` shrinks it by more than half, and the structural pass is the lossless one for text. |
 
 Two known divergences are asserted rather than tolerated, so that a change in
 either is noticed instead of silently absorbed:

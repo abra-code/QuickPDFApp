@@ -62,17 +62,16 @@ ENC_STRENGTH_NOTICE_ID=118
 # QuickPDF.json: ActionUI selects a picker's first option when none is declared,
 # and an untouched picker then reports "" rather than a tag, so both spellings of
 # "the user did not choose" have to land on the same key length. They disagreed
-# between 2026-07-26 and 2026-07-28 - the constant said 256 while the comment,
-# the notice handler and Tests/cases/encrypt-args.sh all said 128 - and the suite
-# failed for those two days without anyone reading it.
+# between 2026-07-26 and 2026-07-28 - the constant said 256 while the comment
+# and the notice handler said 128 - and the suite failed for those two days
+# without anyone reading it.
 #
-# Only ONE direction of that drift is caught automatically. encrypt-args.sh
-# drives build_qpdf_args with an empty picker value, so changing this constant
-# alone turns the suite red; nothing in the suite reads QuickPDF.json, so
-# reordering the picker alone leaves it green while the window offers one
-# strength and the file gets another. Until the test harness can read the
-# window's declared defaults, changing either one means checking the other by
-# hand.
+# Both directions of that drift are caught now, which they were not before
+# omctest. Tests/50-library.test.sh drives build_qpdf_args with an empty picker
+# value, so changing this constant alone turns the suite red; and because
+# omctest starts every section from the defaults it reads out of QuickPDF.json,
+# reordering the picker's options alone turns it red as well. Neither change
+# needs the other to be checked by hand any more.
 ENC_DEFAULT_BITS=256
 
 # Decrypt controls
@@ -481,7 +480,8 @@ build_qpdf_args() {
             # 128-bit further down: without it qpdf writes RC4-128 and refuses
             # the whole run with "refusing to write a file with RC4". The two
             # lines are 20 apart in different branches - change either and the
-            # default path breaks. Tests/cases/encrypt-args.sh covers it.
+            # default path breaks. Tests/50-library.test.sh covers it, and
+            # Tests/cases/encryption-limits.sh pins qpdf's refusal itself.
             if [ "$bits" = "40" ]; then
                 QPDF_ARGS+=(--allow-weak-crypto)
             fi

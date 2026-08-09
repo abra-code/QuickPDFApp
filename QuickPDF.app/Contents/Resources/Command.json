@@ -45,6 +45,9 @@
     },
     {
       "COMMAND_ID": "QuickPDF.init",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
       "EXECUTION_MODE": "exe_script_file",
       "NAME": "QuickPDF"
     },
