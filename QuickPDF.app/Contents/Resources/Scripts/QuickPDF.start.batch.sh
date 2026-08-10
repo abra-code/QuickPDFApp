@@ -153,8 +153,10 @@ Retype both fields and try again."
         fi
 
         # Non-ASCII passwords produce files that cannot be reopened, and qpdf
-        # does not reliably say so. Measured against the bundled qpdf 12.3.2,
-        # re-opening each result with PDFKit (what Preview and Quick Look use):
+        # does not reliably say so. Measured against the qpdf 12.3.2 this
+        # bundle used to carry, re-opening each result with PDFKit (what
+        # Preview and Quick Look use) - none of it re-measured since, see the
+        # note under the length check below:
         #
         #   "cafe" with an acute e   128: fails   256: fails   qpdf is SILENT
         #   "Strasse" with a sharp s 128: fails   256: opens   qpdf is SILENT
@@ -179,8 +181,9 @@ PDF password encoding is not handled consistently across readers: an accented or
         fi
 
         # Length, for the same reason as the ASCII check above and with the same
-        # failure mode. Measured against the bundled qpdf 12.3.2, encrypting and
-        # then reopening with the exact password that was used:
+        # failure mode. Measured against the qpdf 12.3.2 this bundle used to
+        # carry, encrypting and then reopening with the exact password that was
+        # used:
         #
         #   126 characters   256: opens    128: opens
         #   127 characters   256: opens    128: opens
@@ -197,6 +200,27 @@ PDF password encoding is not handled consistently across readers: an accented or
         # and still open. The check is not scoped to 256 anyway, because a
         # password whose last 100 characters are discarded is not what the user
         # asked for either, and one rule is easier to act on than a table.
+        #
+        # Part of this is re-measured against whatever qpdf the bundle carries,
+        # by Tests/cases/encryption-limits.sh: the 127-byte cliff at 256-bit,
+        # and the 32-character truncation at 40- and 128-bit. A qpdf that
+        # stopped doing either one fails there rather than leaving a guard
+        # standing for a reason that expired. Confirmed still true for 12.4.0.
+        #
+        # A qpdf that merely started WARNING about them would NOT fail there.
+        # Those assertions read exit status only, and qpdf's password
+        # diagnostics are the exit-0-with-stderr kind, so the "prints NOTHING
+        # on either stream" sentence above is hand-measured, not pinned.
+        #
+        # The rest is unmeasured on these axes, and two gaps matter. PDFKit is
+        # re-measured elsewhere - encryption-interop.sh reopens qpdf's output
+        # at all three depths every run - but never with a non-ASCII or an
+        # over-length password, so the reopen columns of the first table and
+        # the "or by PDFKit" half of the paragraph above are still the 12.3.2
+        # numbers. Neither is qpdf's warn/silent behavior on a non-ASCII
+        # password, which is the column the ASCII guard's entire justification
+        # rests on: if a future qpdf started warning reliably there, nothing
+        # here would notice and the argument above would quietly be wrong.
         if [ ${#user_pw} -gt 127 ] || [ ${#owner_pw} -gt 127 ]; then
             "$alert_tool" --level caution --title "QuickPDF" \
                 "Use a password of 127 characters or fewer.

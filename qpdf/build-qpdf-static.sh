@@ -196,7 +196,7 @@ detect_latest_qpdf() {
     if [[ "$tag" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
         QPDF_VERSION="${BASH_REMATCH[1]}"; echo "  Detected via API: $QPDF_VERSION"; return
     fi
-    QPDF_VERSION="12.3.2"
+    QPDF_VERSION="12.4.0"
     echo "  Detection failed — falling back to $QPDF_VERSION"
 }
 
