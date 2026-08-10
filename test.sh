@@ -155,6 +155,39 @@ expect_nogrep_all() {
     if "$@" 2>&1 | grep -q -- "$pat"; then fail "unexpected /$pat/ in stdout+stderr from: $*"; fi
 }
 
+# Succeeded AND said nothing at all. Its own helper rather than an expect_ok
+# followed by an expect_nogrep_all, for two reasons. The pair runs the command
+# twice, and the negative half of it is one of the vacuous ones described above:
+# a command that never ran prints nothing, which is indistinguishable from one
+# that ran and stayed quiet. Here a single run supplies both halves, so the
+# silence only counts once the exit status has proved there was something to be
+# silent about.
+#
+# Silence, not merely the absence of "WARNING". What the callers need to know is
+# whether the tool told the user ANYTHING: a future qpdf that reported a
+# truncated or over-long password as a plain note on stdout would satisfy a
+# WARNING-only check while destroying the premise of the guard that check exists
+# to justify.
+#
+# `out` is deliberately NOT declared `local`, and must not become so in a future
+# tidying pass. `local out="$(...)"` makes $? the status of the local builtin,
+# which is 0 whatever the command did, so the exit-status check below would
+# quietly turn into a no-op and the whole helper would collapse to "said
+# nothing" - green forever, including for a qpdf that stopped running at all.
+# The plain names are safe for the same reason every other helper here uses
+# them: each case file is sourced in its own subshell.
+#
+# elif, not a second if: a command that fails usually explains itself on stderr,
+# and reporting that explanation a second time as "expected no output" would
+# both double the failure count and describe a legitimate error message as if it
+# were unwanted chatter.
+expect_silent_ok() { # <what> <command...>
+    what="$1"; shift
+    out="$("$@" 2>&1)"; code=$?
+    if [ "$code" != 0 ]; then fail "$what: expected exit 0, got $code: $* [$out]"
+    elif [ -n "$out" ];  then fail "$what: expected no output, got [$out]"; fi
+}
+
 # Compare two values, reporting both on mismatch - the whole point of a cross-tool
 # suite is what the two tools each said, so never report just "mismatch".
 expect_eq() {

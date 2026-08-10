@@ -203,14 +203,13 @@ PDF password encoding is not handled consistently across readers: an accented or
         #
         # Part of this is re-measured against whatever qpdf the bundle carries,
         # by Tests/cases/encryption-limits.sh: the 127-byte cliff at 256-bit,
-        # and the 32-character truncation at 40- and 128-bit. A qpdf that
-        # stopped doing either one fails there rather than leaving a guard
-        # standing for a reason that expired. Confirmed still true for 12.4.0.
-        #
-        # A qpdf that merely started WARNING about them would NOT fail there.
-        # Those assertions read exit status only, and qpdf's password
-        # diagnostics are the exit-0-with-stderr kind, so the "prints NOTHING
-        # on either stream" sentence above is hand-measured, not pinned.
+        # and the 32-character truncation at 40- and 128-bit. The silence is
+        # pinned too, not just the behavior - all three writes are asserted to
+        # exit 0 and say nothing on either stream, so a qpdf that merely
+        # started WARNING about an over-long or truncated password fails there
+        # just as a qpdf that stopped truncating would. That is what keeps the
+        # "prints NOTHING on either stream" sentence above from going stale
+        # unnoticed. Confirmed still true for 12.4.0.
         #
         # The rest is unmeasured on these axes, and two gaps matter. PDFKit is
         # re-measured elsewhere - encryption-interop.sh reopens qpdf's output

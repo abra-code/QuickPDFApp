@@ -14,6 +14,11 @@
 # different long password sharing that prefix opens the file. /R 6 (AES-256)
 # does not. This is why 256-bit is the default rather than merely the strongest
 # option on offer.
+#
+# The two truncating writes are asserted SILENT as well as successful, because
+# silence is what forces the app to explain the rule in its own alert text. If a
+# future qpdf starts saying "password truncated" itself, those lines fail and
+# the notice can defer to qpdf instead of restating it.
 long_pw="abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGH"   # 44 characters
 other_pw="abcdefghijklmnopqrstuvwxyz012345ZZZZZZZZZZZZ"   # same first 32
 near_pw="abcdefghijklmnopqrstuvwxyz01234YYYYYYYYYYYYY"    # same first 31 only
@@ -23,7 +28,7 @@ expect_ok "$QPDF" --encrypt --user-password="$long_pw" \
 expect_ok   "$QPDF" --show-npages --password="$long_pw"  "$TMP/trunc-256.pdf"
 expect_fail "$QPDF" --show-npages --password="$other_pw" "$TMP/trunc-256.pdf"
 
-expect_ok "$QPDF" --encrypt --user-password="$long_pw" \
+expect_silent_ok "128-bit truncating write" "$QPDF" --encrypt --user-password="$long_pw" \
     --owner-password="$long_pw" --bits=128 --use-aes=y -- "$FIX/text.pdf" "$TMP/trunc-128.pdf"
 expect_ok "$QPDF" --show-npages --password="$other_pw" "$TMP/trunc-128.pdf"
 # The boundary is 32 exactly, not "32 or fewer". Without this line the pair
@@ -31,8 +36,15 @@ expect_ok "$QPDF" --show-npages --password="$other_pw" "$TMP/trunc-128.pdf"
 expect_fail "$QPDF" --show-npages --password="$near_pw" "$TMP/trunc-128.pdf"
 
 # 40-bit truncates at 32 too, which is what its notice in the app claims.
-expect_ok "$QPDF" --allow-weak-crypto --encrypt --user-password="$long_pw" \
-    --owner-password="$long_pw" --bits=40 -- "$FIX/text.pdf" "$TMP/trunc-40.pdf"
+#
+# This is the only silence-asserted write carrying --allow-weak-crypto, and qpdf
+# has been tightening weak crypto for several releases. So the likeliest reason
+# this line ever goes non-silent is an RC4/40-bit deprecation notice rather than
+# anything about the password - read the output before concluding the truncation
+# story changed.
+expect_silent_ok "40-bit truncating write" "$QPDF" --allow-weak-crypto --encrypt \
+    --user-password="$long_pw" --owner-password="$long_pw" --bits=40 \
+    -- "$FIX/text.pdf" "$TMP/trunc-40.pdf"
 expect_ok   "$QPDF" --show-npages --password="$other_pw" "$TMP/trunc-40.pdf"
 expect_fail "$QPDF" --show-npages --password="$near_pw"  "$TMP/trunc-40.pdf"
 
@@ -42,6 +54,12 @@ expect_fail "$QPDF" --show-npages --password="$near_pw"  "$TMP/trunc-40.pdf"
 # exits 0, says nothing, and the result cannot be reopened with the password
 # that created it. QuickPDF refuses anything longer before writing; if qpdf ever
 # starts reporting this itself, this case is how we find out the guard can go.
+#
+# "Says nothing" is asserted rather than assumed, and until it was, that promise
+# was empty: every assertion covering an encrypt call read exit status only, so
+# a qpdf that wrote the file, exited 0 and printed a warning about the length
+# would have passed this file unchanged - which is precisely the change the
+# guard is waiting for.
 pw127="$(/usr/bin/python3 -c 'print("a"*127)')"
 pw128="$(/usr/bin/python3 -c 'print("a"*128)')"
 
@@ -49,7 +67,8 @@ expect_ok "$QPDF" --encrypt --user-password="$pw127" --owner-password="$pw127" \
     --bits=256 -- "$FIX/text.pdf" "$TMP/len127.pdf"
 expect_ok "$QPDF" --show-npages --password="$pw127" "$TMP/len127.pdf"
 
-expect_ok "$QPDF" --encrypt --user-password="$pw128" --owner-password="$pw128" \
+expect_silent_ok "over-length write past the 127-byte cliff" \
+    "$QPDF" --encrypt --user-password="$pw128" --owner-password="$pw128" \
     --bits=256 -- "$FIX/text.pdf" "$TMP/len128.pdf"
 expect_fail "$QPDF" --show-npages --password="$pw128" "$TMP/len128.pdf"
 
