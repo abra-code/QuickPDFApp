@@ -19,7 +19,7 @@ fi
 operation="$OMC_ACTIONUI_VIEW_60_VALUE"
 [ -z "$operation" ] && operation="optimize"
 
-# Fill QPDF_ARGS / QPDF_POST_ARGS / QPDF_LINEARIZE from the UI
+# Fill QPDF_ARGS / QPDF_POST_ARGS from the UI
 build_qpdf_args "$operation"
 
 IFS=$'\n' read -r -d '' -a files <<< "$file_paths" || true
@@ -97,8 +97,8 @@ for file_path in "${files[@]}"; do
     tmp_out="$(/usr/bin/mktemp "$destination/.quickpdf.XXXXXX")"
 
     if [ "$operation" = "optimize" ]; then
-        # Optional pdfutil reduce image stage, then qpdf structural pass with the
-        # linearize keep-if-smaller two-pass (see optimize_file in lib).
+        # Optional pdfutil reduce image stage, then the qpdf structural pass
+        # (see optimize_file in lib).
         output="$(optimize_file "$file_path" "$tmp_out")"
         exit_code=$?
     else
@@ -114,8 +114,16 @@ for file_path in "${files[@]}"; do
         new_size="$(/usr/bin/stat -f %z "$output_file")"
         if [ $exit_code -eq 3 ]; then
             warn_count=$((warn_count + 1))
+            # One line of what the warning actually was, the same shape as the
+            # error branch below. Without it "(with warnings)" tells the user
+            # that something happened and never what - and optimize_file relies
+            # on this line to report a linearize it had to drop, which is a
+            # thing the user asked for and did not get. Its note is written
+            # first for that reason; qpdf's own warnings lead otherwise.
+            warn_line="$(printf '%s' "$output" | /usr/bin/head -1 | /usr/bin/sed 's/^qpdf: //')"
             details="${details}
-⚠ ${filename}: $(format_size "$orig_size") → $(format_size "$new_size") (with warnings)${rename_note}"
+⚠ ${filename}: $(format_size "$orig_size") → $(format_size "$new_size") (with warnings)${rename_note}${warn_line:+
+    ${warn_line}}"
         else
             success_count=$((success_count + 1))
             details="${details}

@@ -44,7 +44,7 @@ filename="$(/usr/bin/basename "$input_file")"
 operation="$OMC_ACTIONUI_VIEW_60_VALUE"
 [ -z "$operation" ] && operation="optimize"
 
-# Fill QPDF_ARGS / QPDF_POST_ARGS / QPDF_LINEARIZE from the UI
+# Fill QPDF_ARGS / QPDF_POST_ARGS from the UI
 build_qpdf_args "$operation"
 
 set_summary "Running ${operation} on ${filename}…"
@@ -55,8 +55,8 @@ out_dir="$(/usr/bin/dirname "$output_file")"
 tmp_out="$(/usr/bin/mktemp "$out_dir/.quickpdf.XXXXXX")"
 
 if [ "$operation" = "optimize" ]; then
-    # Optimize = optional pdfutil reduce image stage, then qpdf structural pass with
-    # the linearize keep-if-smaller two-pass (see optimize_file in lib).
+    # Optimize = optional pdfutil reduce image stage, then the qpdf structural
+    # pass (see optimize_file in lib).
     output="$(optimize_file "$input_file" "$tmp_out")"
     exit_code=$?
 else

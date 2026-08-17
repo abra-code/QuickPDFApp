@@ -181,17 +181,20 @@ check "stream compression follows its own toggle" "no" \
     "$(qpdf_has_arg optimize --compress-streams=y)"
 
 reset_document
+omc_control "$OPT_LINEARIZE_ID" "true"
 omc_control "$OPT_RECOMPRESS_IMAGES_ID" "false"
 check "recompression follows its own toggle" "0" \
     "$(quickpdf_eval 'build_qpdf_args optimize >/dev/null 2>&1; printf %s "$QPDF_RECOMPRESS_IMAGES"')"
-check "and linearize is untouched by it" "1" \
-    "$(quickpdf_eval 'build_qpdf_args optimize >/dev/null 2>&1; printf %s "$QPDF_LINEARIZE"')"
+check "and linearize is untouched by it" "yes" "$(qpdf_has_arg optimize --linearize)"
 
 reset_document
+omc_control "$OPT_LINEARIZE_ID" "true"
+check "linearize follows its own toggle" "yes" "$(qpdf_has_arg optimize --linearize)"
+check "and recompression is untouched by it being on" "1" \
+    "$(quickpdf_eval 'build_qpdf_args optimize >/dev/null 2>&1; printf %s "$QPDF_RECOMPRESS_IMAGES"')"
 omc_control "$OPT_LINEARIZE_ID" "false"
-check "linearize follows its own toggle" "0" \
-    "$(quickpdf_eval 'build_qpdf_args optimize >/dev/null 2>&1; printf %s "$QPDF_LINEARIZE"')"
-check "and recompression is untouched by it" "1" \
+check "and off means off" "no" "$(qpdf_has_arg optimize --linearize)"
+check "nor by it being off" "1" \
     "$(quickpdf_eval 'build_qpdf_args optimize >/dev/null 2>&1; printf %s "$QPDF_RECOMPRESS_IMAGES"')"
 
 # --------------------------------------------------------------------------
@@ -307,7 +310,6 @@ optimize_with_stubs() { # <pdfutil-stub> <output>
 reset_document
 omc_control "$OPT_RECOMPRESS_IMAGES_ID" "true"
 omc_control "$OPT_JPEG_QUALITY_ID" 60
-omc_control "$OPT_LINEARIZE_ID" "false"
 _args="$(optimize_with_stubs "$_stubs/pdfutil-noop" "$OMCTEST_WORK/fallback-on.pdf")"
 check "the image stage ran at all"                "yes" "$(contains "$_args" "--compress-streams")"
 check "a declining image stage hands over to qpdf" "yes" "$(contains "$_args" "--optimize-images")"
@@ -328,11 +330,231 @@ check "an image stage that worked keeps qpdf out of it" "no" \
 # flag must stay absent however the run goes.
 reset_document
 omc_control "$OPT_RECOMPRESS_IMAGES_ID" "false"
-omc_control "$OPT_LINEARIZE_ID" "false"
 _args="$(optimize_with_stubs "$_stubs/pdfutil-noop" "$OMCTEST_WORK/fallback-nostage.pdf")"
 check "the structural pass ran with no image stage" "yes" \
     "$(contains "$_args" "--compress-streams")"
 check "no image stage means no fallback" "no" "$(contains "$_args" "--optimize-images")"
+
+# --------------------------------------------------------------------------
+section "a file qpdf cannot linearize keeps its optimize"
+# --------------------------------------------------------------------------
+# --linearize is never revoked for being too big, but it can be the one thing
+# qpdf refuses: a damaged page tree gives "no pages found while calculating
+# linearization data" on a file the plain pass rewrites happily. Dropping the
+# flag and retrying is what keeps the rest of the work, and it is not a nicety -
+# 1.0's two-pass had this fallback for free by always writing a plain result
+# first, so a single pass without it would deliver nothing where 1.0 delivered
+# a valid file.
+#
+# Stubbed rather than fixtured: the trigger is one specific structural damage,
+# and a fixture that quietly stopped triggering it would leave this section
+# green while testing nothing.
+cat > "$_stubs/qpdf-linearize-fatal" <<'STUB'
+#!/bin/sh
+printf '%s\n' "$*" >> "$QPDF_ARGS_LOG"
+for a in "$@"; do
+    case "$a" in
+        --linearize)
+            echo "qpdf: no pages found while calculating linearization data" >&2
+            exit 2
+            ;;
+    esac
+    last="$a"
+done
+cp "$QPDF_STUB_SOURCE" "$last"
+STUB
+
+# The other half of the contract: a file qpdf cannot write AT ALL must stay
+# fatal. Reporting that one as merely warned is the dangerous direction - both
+# runners move the staging file into place on 3, so a wrong 3 overwrites the
+# user's chosen destination with a partial file.
+#
+# It writes those partial bytes before giving up, the way qpdf does. A stub that
+# left the output empty would make "nothing was delivered" true whatever the
+# library decided, and this is the one assertion that must not be free.
+# The two calls must be distinguishable in what they SAY, not only in their
+# status: the linearize attempt adds its own complaint on top of the real one,
+# and which of the two messages reaches the user is the thing being tested.
+cat > "$_stubs/qpdf-always-fatal" <<'STUB'
+#!/bin/sh
+printf '%s\n' "$*" >> "$QPDF_ARGS_LOG"
+for a in "$@"; do
+    case "$a" in
+        --linearize)
+            echo "qpdf: no pages found while calculating linearization data" >&2
+            ;;
+    esac
+    last="$a"
+done
+printf '%%PDF-1.7\n' > "$last"
+echo "qpdf: unable to read the file" >&2
+exit 2
+STUB
+
+# ...and one that dies on a signal on the retry, which is neither 0 nor 3 nor 2.
+# A fallback written as "anything but fatal" promotes this to "written, with
+# warnings" and hands the user the half file above. The retry runs only on a
+# file qpdf has just called broken, so this is where a crash would show up.
+cat > "$_stubs/qpdf-retry-crash" <<'STUB'
+#!/bin/sh
+printf '%s\n' "$*" >> "$QPDF_ARGS_LOG"
+for a in "$@"; do
+    case "$a" in
+        --linearize)
+            echo "qpdf: no pages found while calculating linearization data" >&2
+            exit 2
+            ;;
+    esac
+    last="$a"
+done
+printf '%%PDF-1.7\n' > "$last"
+kill -SEGV $$
+STUB
+
+/bin/chmod +x "$_stubs/qpdf-linearize-fatal" "$_stubs/qpdf-always-fatal" \
+              "$_stubs/qpdf-retry-crash"
+_not_executable=""
+for _stub in qpdf-linearize-fatal qpdf-always-fatal qpdf-retry-crash; do
+    [ -x "$_stubs/$_stub" ] || _not_executable="${_not_executable:+$_not_executable }$_stub"
+done
+check "both fatal stubs are executable" "" "$_not_executable"
+
+# Returns "<status>|<what optimize_file reported>". The status is read from a
+# plain assignment, not a `local` one, so it is optimize_file's own - the same
+# trap the library documents at its two `local out` declarations.
+optimize_with_qpdf() { # <qpdf-stub> <output> [pdfutil-stub]
+    export OMCTEST_STUB_QPDF="$1" OMCTEST_STUB_OUT="$2"
+    export OMCTEST_STUB_PDFUTIL="${3:-$PDFUTIL_BIN}"
+    export OMCTEST_STUB_IN="$text_pdf"
+    /bin/rm -f "$2"
+    : > "$QPDF_ARGS_LOG"
+    quickpdf_eval '
+        QPDF="$OMCTEST_STUB_QPDF"
+        PDFUTIL="$OMCTEST_STUB_PDFUTIL"
+        build_qpdf_args optimize >/dev/null 2>&1
+        _text="$(optimize_file "$OMCTEST_STUB_IN" "$OMCTEST_STUB_OUT" 2>/dev/null)"
+        printf "%s|%s" "$?" "$_text"'
+}
+
+# What the runners do with a status: both deliver on 0 and 3 and on nothing
+# else (QuickPDF.run.single.sh:67, QuickPDF.run.batch.sh:109). Asserting
+# through this rather than on the staging file is the point - optimize_file
+# does not delete a failed pass's output, the caller does, so "the file is
+# still there" says nothing about whether the user would receive it.
+delivers() { # <status> -> yes | no
+    { [ "$1" = "0" ] || [ "$1" = "3" ]; } && echo yes || echo no
+}
+
+# The input path qpdf was handed on the <n>th call: the args are flags, then
+# input, then output, so it is the second-to-last field.
+logged_input() { # <line-number>
+    /usr/bin/sed -n "${1}p" "$QPDF_ARGS_LOG" | /usr/bin/awk '{print $(NF-1)}'
+}
+
+reset_document
+omc_control "$OPT_RECOMPRESS_IMAGES_ID" "false"
+omc_control "$OPT_LINEARIZE_ID" "true"
+_lf_out="$OMCTEST_WORK/lin-fatal.pdf"
+_lf="$(optimize_with_qpdf "$_stubs/qpdf-linearize-fatal" "$_lf_out")"
+
+check "the run is reported as warned, not failed" "3" "${_lf%%|*}"
+check "and says the file went out without linearize" "yes" \
+    "$(contains "${_lf#*|}" "linearize failed")"
+check "with qpdf's own account of the refusal kept" "yes" \
+    "$(contains "${_lf#*|}" "no pages found")"
+check "the file was delivered" "yes" \
+    "$([ -s "$_lf_out" ] && echo yes || echo no)"
+
+# Two invocations, and only the first asked for it: the retry is a real second
+# call with the flag removed, not the same command line run twice.
+check "qpdf was called twice" "2" \
+    "$(/usr/bin/wc -l < "$QPDF_ARGS_LOG" | /usr/bin/tr -d ' ')"
+check "the first call asked to linearize" "yes" \
+    "$(contains "$(/usr/bin/head -1 "$QPDF_ARGS_LOG")" "--linearize")"
+check "and the retry did not" "no" \
+    "$(contains "$(/usr/bin/tail -1 "$QPDF_ARGS_LOG")" "--linearize")"
+# The control for that negative: "no --linearize" is equally true of a retry
+# that lost everything. Pinned as the whole line rather than a spot-check on one
+# flag, because a filter that over-matches drops a DIFFERENT flag each time and
+# any single-flag control has a blind spot for exactly that mutation.
+check "which kept the rest of the command line" \
+    "$(/usr/bin/head -1 "$QPDF_ARGS_LOG" | /usr/bin/sed 's/ --linearize//')" \
+    "$(/usr/bin/tail -1 "$QPDF_ARGS_LOG")"
+
+check "the retry read what the first pass read" "yes" \
+    "$([ "$(logged_input 1)" = "$(logged_input 2)" ] && echo yes || echo no)"
+
+# The image stage and the retry, together: with pdfutil shrinking the file, the
+# structural pass runs on ITS output, and so must the retry. A retry that went
+# back to the original input would deliver a file whose images were never
+# recompressed, silently, while still reporting success-with-warnings.
+reset_document
+omc_control "$OPT_RECOMPRESS_IMAGES_ID" "true"
+omc_control "$OPT_LINEARIZE_ID" "true"
+_st="$(optimize_with_qpdf "$_stubs/qpdf-linearize-fatal" "$OMCTEST_WORK/lin-fatal-staged.pdf" \
+       "$_stubs/pdfutil-shrink")"
+check "an image stage in front of the retry still warns" "3" "${_st%%|*}"
+check "and both passes read the same file" "yes" \
+    "$([ "$(logged_input 1)" = "$(logged_input 2)" ] && echo yes || echo no)"
+# The control: without this, "both read the same file" is also true of a retry
+# that ignored the image stage, because so did the first pass.
+check "which is the image stage's output, not the original" "no" \
+    "$([ "$(logged_input 2)" = "$text_pdf" ] && echo yes || echo no)"
+
+# And when the image stage declines, the qpdf fallback flags it added have to
+# survive the retry too - they are the only image work left in the run.
+reset_document
+omc_control "$OPT_RECOMPRESS_IMAGES_ID" "true"
+omc_control "$OPT_LINEARIZE_ID" "true"
+_fb="$(optimize_with_qpdf "$_stubs/qpdf-linearize-fatal" "$OMCTEST_WORK/lin-fatal-fallback.pdf" \
+       "$_stubs/pdfutil-noop")"
+check "a declining image stage in front of the retry still warns" "3" "${_fb%%|*}"
+check "the first pass carried the fallback flags" "yes" \
+    "$(contains "$(/usr/bin/head -1 "$QPDF_ARGS_LOG")" "--optimize-images")"
+check "and the retry kept them" "yes" \
+    "$(contains "$(/usr/bin/tail -1 "$QPDF_ARGS_LOG")" "--optimize-images")"
+
+# A retry that dies on a signal is not a success. 139 is neither 0 nor 3, and a
+# fallback written as "anything but 2" would call it warnings and ship the bytes
+# the crash left behind.
+reset_document
+omc_control "$OPT_RECOMPRESS_IMAGES_ID" "false"
+omc_control "$OPT_LINEARIZE_ID" "true"
+_cr_out="$OMCTEST_WORK/retry-crash.pdf"
+_cr="$(optimize_with_qpdf "$_stubs/qpdf-retry-crash" "$_cr_out")"
+check "a crashed retry is not reported as warnings" "no" "$(delivers "${_cr%%|*}")"
+check "the run is fatal instead" "2" "${_cr%%|*}"
+# The teeth: the crash left bytes behind, so refusing to deliver is a decision
+# the library made rather than an empty file making it moot.
+check "and it did leave a partial file to be refused" "yes" \
+    "$([ -s "$_cr_out" ] && echo yes || echo no)"
+
+_af_out="$OMCTEST_WORK/always-fatal.pdf"
+_af="$(optimize_with_qpdf "$_stubs/qpdf-always-fatal" "$_af_out")"
+check "a file qpdf cannot write at all stays fatal" "2" "${_af%%|*}"
+check "so nothing is delivered for it" "no" "$(delivers "${_af%%|*}")"
+check "though it too left a partial file" "yes" \
+    "$([ -s "$_af_out" ] && echo yes || echo no)"
+# The retry still happened - it is what proves the fatal verdict was re-tested
+# rather than the first status being passed through by luck.
+check "after the retry was tried and failed too" "2" \
+    "$(/usr/bin/wc -l < "$QPDF_ARGS_LOG" | /usr/bin/tr -d ' ')"
+# ...and the reported reason is the retry's, not the first pass's: blaming
+# linearize is useless advice for a file that just failed without it.
+check "the reported reason is the one that still applies" "yes" \
+    "$(contains "${_af#*|}" "unable to read the file")"
+check "not the linearize refusal the retry ruled out" "no" \
+    "$(contains "${_af#*|}" "no pages found")"
+
+# With linearize off there is nothing to drop, so the retry must not happen at
+# all: one call, one fatal status.
+reset_document
+omc_control "$OPT_RECOMPRESS_IMAGES_ID" "false"
+omc_control "$OPT_LINEARIZE_ID" "false"
+_af="$(optimize_with_qpdf "$_stubs/qpdf-always-fatal" "$OMCTEST_WORK/always-fatal-nolin.pdf")"
+check "an unlinearized run reports the same failure" "2" "${_af%%|*}"
+check "without a pointless second attempt" "1" \
+    "$(/usr/bin/wc -l < "$QPDF_ARGS_LOG" | /usr/bin/tr -d ' ')"
 
 unset QPDF_ARGS_LOG QPDF_STUB_SOURCE
 
@@ -340,8 +562,8 @@ unset QPDF_ARGS_LOG QPDF_STUB_SOURCE
 section "optimize_file, with the real engines"
 # --------------------------------------------------------------------------
 # The runner tests in 40-run drive this through a handler and a Save panel. What
-# they cannot reach is the two-pass linearize decision and the failure path,
-# because both are internal to optimize_file and leave no separate trace.
+# they cannot reach is the failure path, because it is internal to optimize_file
+# and leaves no separate trace.
 run_optimize() { # <input> <output> -> exit status
     export OMCTEST_OPT_IN="$1" OMCTEST_OPT_OUT="$2"
     quickpdf_eval '
@@ -362,10 +584,16 @@ printf 'this is not a pdf\n' > "$OMCTEST_WORK/notapdf.pdf"
 check "a non-PDF input fails the pipeline fatally" "2" \
     "$(run_optimize "$OMCTEST_WORK/notapdf.pdf" "$OMCTEST_WORK/opt-bad.pdf")"
 
-# Linearize keep-if-smaller: the second pass is kept only when it did not grow
-# the file, so either outcome is correct and the assertion is the invariant.
+# Linearize is applied when asked for and never second-guessed. It reorders
+# objects so a reader can display the file before it has finished downloading,
+# and the standard keeps parts of the result uncompressed, so it can legitimately
+# hand back a LARGER file than the plain pass - the assertion is that the file
+# really is linearized, never that it got smaller.
 reset_document
 omc_control "$OPT_RECOMPRESS_IMAGES_ID" "false"
+# Set rather than assumed: this run is the control for the linearized one below,
+# so it must be un-linearized because the test said so, not because the shipped
+# default happens to agree today.
 omc_control "$OPT_LINEARIZE_ID" "false"
 _plain="$OMCTEST_WORK/opt-plain.pdf"
 _plain_rc="$(run_optimize "$text_pdf" "$_plain")"
@@ -374,15 +602,21 @@ check "the plain pass succeeded" "0" "$_plain_rc"
 omc_control "$OPT_LINEARIZE_ID" "true"
 _lin="$OMCTEST_WORK/opt-lin.pdf"
 _lin_rc="$(run_optimize "$text_pdf" "$_lin")"
-# 3 is qpdf reporting warnings on a file it still wrote, which a kept
-# linearized pass can legitimately carry. Written as two [ ] tests rather than a
-# case: a case pattern's ")" terminates the enclosing $( ), which is a parse
-# error inside the substitution rather than a wrong answer.
+# 3 is qpdf reporting warnings on a file it still wrote, which a linearized pass
+# can legitimately carry. Written as two [ ] tests rather than a case: a case
+# pattern's ")" terminates the enclosing $( ), which is a parse error inside the
+# substitution rather than a wrong answer.
 check "the linearize pass succeeded or warned" "yes" \
     "$([ "$_lin_rc" = 0 ] || [ "$_lin_rc" = 3 ] && echo yes || echo no)"
-check "and never delivered a larger file than the plain pass" "yes" \
-    "$([ "$(/usr/bin/stat -f %z "$_lin")" -le "$(/usr/bin/stat -f %z "$_plain")" ] \
-        && echo yes || echo no)"
+# The check with teeth, and the reason the plain pass above is run at all: it is
+# the control proving "File is linearized" reports the toggle rather than
+# something qpdf says about every file it writes.
+check "the delivered file is linearized" "yes" \
+    "$(contains "$("$QPDF_BIN" --check "$_lin" 2>/dev/null)" "File is linearized")"
+# Asserted positively, on qpdf's own affirmative negative: "does not say
+# linearized" would also be true of empty output from a broken $QPDF_BIN.
+check "and the plain pass left it alone" "yes" \
+    "$(contains "$("$QPDF_BIN" --check "$_plain" 2>/dev/null)" "File is not linearized")"
 check "the delivered file still has every page" "5" \
     "$("$QPDF_BIN" --show-npages "$_lin" 2>/dev/null)"
 check "and its text survived" "yes" \

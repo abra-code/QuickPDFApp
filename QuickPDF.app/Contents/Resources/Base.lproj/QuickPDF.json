@@ -356,8 +356,8 @@
                     "type": "Toggle",
                     "id": 70,
                     "properties": {
-                      "title": "Linearize for fast web view (kept only if not larger)",
-                      "isOn": true,
+                      "title": "Linearize for fast web view (may increase size)",
+                      "isOn": false,
                       "style": "checkbox"
                     }
                   },

@@ -28,7 +28,7 @@ Most operations are 1-in / 1-out transforms applied to every file in the list, w
 
 | Operation | What it does |
 |---|---|
-| **Optimize** | Reduce file size. Recompresses and downsamples images (via pdfutil's `reduce` verb), lossless stream compression, object-stream generation, removal of unreferenced resources, and optional linearization for fast web view (kept only if it does not grow the file). |
+| **Optimize** | Reduce file size. Recompresses and downsamples images (via pdfutil's `reduce` verb), lossless stream compression, object-stream generation, and removal of unreferenced resources. Linearization for fast web view is offered here too, off by default: it is object ordering for progressive display rather than a size technique, and it will grow a well-optimized file. |
 | **Split** | Split a PDF into parts of N pages each; parts land in a subfolder named after the source file. |
 | **Extract Pages** | Extract or reorder a page range using qpdf's page-range syntax. |
 | **Merge** | Combine every PDF in the list into one file, with an optional page range applied to each input. |

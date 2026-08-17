@@ -230,6 +230,31 @@ check "no staging file survived in the destination" "0" \
     "$(/usr/bin/find "$dest" -maxdepth 1 -name '.quickpdf.*' | /usr/bin/wc -l | /usr/bin/tr -d ' ')"
 
 # --------------------------------------------------------------------------
+section "a batch warning says what the warning was"
+# --------------------------------------------------------------------------
+# "(with warnings)" on its own tells the user that something happened and never
+# what. The single-file runner has always printed the whole message; batch has
+# room for one line per file and takes the first. One of the things that line
+# now has to carry is optimize_file's note that a linearize had to be dropped -
+# something the user ticked a box for and did not get - and a batch of twenty
+# is exactly where an unexplained warning count is easiest to ignore.
+reset_document
+dest_warn="$OMCTEST_WORK/batch-out-warn"
+/bin/mkdir -p "$dest_warn"
+damaged_batch="$OMCTEST_WORK/damaged-batch.pdf"
+/bin/cp "$text_pdf" "$damaged_batch"
+"$OMCTEST_TESTS/helpers/damage_startxref.py" "$damaged_batch"
+seed_list "$damaged_batch"
+omc_control "$OPERATION_PICKER_ID" repair
+omc_dialog_answer choose_folder "$dest_warn"
+run_with_list QuickPDF.run.batch
+check_status "the batch ran" 0
+check "the file is counted as warned" "yes" "$(contains "$(summary)" "1 with warnings")"
+check "and the summary quotes qpdf's first line" "yes" \
+    "$(contains "$(summary)" "file is damaged")"
+check_exists "the repaired file was still written" "$dest_warn/damaged-batch.pdf"
+
+# --------------------------------------------------------------------------
 section "a batch run does not overwrite what is already in the folder"
 # --------------------------------------------------------------------------
 # The folder chooser confirms a DIRECTORY, not the names inside it, so nothing

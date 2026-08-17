@@ -28,7 +28,10 @@ check "the operation picker starts on Optimize" "optimize" \
 # changes the qpdf command line rather than just the pixels.
 check "recompress images ships on"       "true"  "$(view_value "$OPT_RECOMPRESS_IMAGES_ID")"
 check "downsample ships on"              "true"  "$(view_value "$OPT_DOWNSAMPLE_ID")"
-check "linearize ships on"               "true"  "$(view_value "$OPT_LINEARIZE_ID")"
+# Linearize is the one Optimize toggle that ships OFF: it reorders objects for
+# progressive display and grows a well-optimized file, so a panel whose stated
+# job is reducing size must not do it unasked.
+check "linearize ships off"              "false" "$(view_value "$OPT_LINEARIZE_ID")"
 check "allow-modify ships OFF by omission" "false" "$(view_value "$ENC_ALLOW_MODIFY_ID")"
 # ENC_DEFAULT_BITS is not an id, so the _ID import does not pick it up; read it
 # out of the library itself rather than restating 256 here.
@@ -58,7 +61,8 @@ decided() { quickpdf_eval "build_qpdf_args optimize >/dev/null 2>&1; printf '%s'
 args="$(qpdf_args_for optimize)"
 check "the builder produced a command line" "yes" "$([ -n "$args" ] && echo yes || echo no)"
 check "the streams toggle reached qpdf"     "yes" "$(contains "$args" "--compress-streams=y")"
-check "linearize was decided on"            "1"   "$(decided QPDF_LINEARIZE)"
+check "and the default run does not linearize" "no" \
+    "$(qpdf_has_arg optimize --linearize)"
 check "recompressing images was decided on" "1"   "$(decided QPDF_RECOMPRESS_IMAGES)"
 check "at the declared jpeg quality"        "85"  "$(decided QPDF_JPEG_QUALITY)"
 check "and the declared downsample dpi"     "150" "$(decided QPDF_DOWNSAMPLE_DPI)"
@@ -68,7 +72,10 @@ check "and the declared downsample dpi"     "150" "$(decided QPDF_DOWNSAMPLE_DPI
 # same code decides to do different work.
 omc_reset_controls
 check "a blanked window would not recompress" "0" "$(decided QPDF_RECOMPRESS_IMAGES)"
-check "and would not linearize"               "0" "$(decided QPDF_LINEARIZE)"
+# A blanked toggle reads "" where the shipped one reads "false", so this is a
+# different branch of the same comparison than the default-window check above -
+# and the one that catches a builder testing for "not off" instead of "on".
+check "and would not linearize"               "no" "$(qpdf_has_arg optimize --linearize)"
 check "so its command line differs"           "no" \
     "$([ "$args" = "$(qpdf_args_for optimize)" ] && echo yes || echo no)"
 

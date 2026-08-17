@@ -420,13 +420,11 @@ structure_risk_phrase() {
 #   QPDF_ARGS      - flags placed before the input path
 #   QPDF_POST_ARGS - flags placed between the input and output paths
 #                    (e.g. --pages for extract)
-#   QPDF_LINEARIZE - 1/0, optimize only: batch loop does the two-pass size check
 # Arguments: operation tag (optimize|encrypt|decrypt|rotate|extract|split)
 build_qpdf_args() {
     local op="$1"
     QPDF_ARGS=()
     QPDF_POST_ARGS=()
-    QPDF_LINEARIZE=0
     # pdfutil reduce image stage (optimize only); consumed by optimize_file
     QPDF_RECOMPRESS_IMAGES=0
     QPDF_JPEG_QUALITY=85
@@ -456,8 +454,14 @@ build_qpdf_args() {
                     QPDF_DOWNSAMPLE_DPI=0
                 fi
             fi
+            # Linearization is object ordering for progressive display, not a
+            # size technique: the standard excludes certain objects from
+            # compression, so linearizing a well-optimized file makes it bigger
+            # (jberkenbilt, qpdf/qpdf discussion #1751). It is therefore just
+            # another flag on the structural pass - asked for, always applied,
+            # never second-guessed by comparing sizes.
             if [ "$OMC_ACTIONUI_VIEW_70_VALUE" = "true" ]; then
-                QPDF_LINEARIZE=1
+                QPDF_ARGS+=(--linearize)
             fi
             ;;
 
@@ -609,10 +613,10 @@ image_stage_helped() {
 }
 
 # Full optimize pipeline for one file: an optional pdfutil reduce image stage
-# followed by the qpdf structural pass, including the linearize keep-if-smaller
-# two-pass. Writes the result to $2 (a caller-provided temp path). Echoes the
-# tool output for the caller's summary; returns an exit code compatible with the
-# run scripts (0 ok, 3 qpdf warnings, 2 fatal, other = error).
+# followed by the qpdf structural pass. Writes the result to $2 (a
+# caller-provided temp path). Echoes the tool output for the caller's summary;
+# returns an exit code compatible with the run scripts (0 ok, 3 qpdf warnings,
+# 2 fatal, other = error).
 #
 # Called inside a command substitution, so QPDF_ARGS mutations here stay local
 # to the subshell; file writes/moves still take effect.
@@ -648,10 +652,10 @@ optimize_file() {
             # to offer, and the alternative is shipping the images untouched.
             #
             # Added to the structural pass that is about to run rather than
-            # spawned as a third invocation: qpdf is going to open and rewrite
+            # spawned as a second invocation: qpdf is going to open and rewrite
             # this file either way. QPDF_ARGS is safe to mutate here because
-            # optimize_file runs inside a command substitution (see above), the
-            # same reason --linearize can be appended below.
+            # optimize_file runs inside a command substitution (see above), so
+            # the extra flags do not leak into the next file of a batch.
             /bin/rm -f "$reduced"
             reduced=""
             QPDF_ARGS+=(--optimize-images "--jpeg-quality=$QPDF_JPEG_QUALITY" \
@@ -661,32 +665,58 @@ optimize_file() {
 
     # out is declared apart from its assignment for the same reason as above:
     # combined, $code was always 0, so optimize_file returned success even when
-    # qpdf exited 2 (fatal error), and the "$code -ne 2" guard below always took
-    # the no-fatal-error branch.
+    # qpdf exited 2 (fatal error) and the caller moved a half-written staging
+    # file into place.
     local out
     out="$(run_qpdf "$src" "$final_out")"
     local code=$?
 
-    if [ "$QPDF_LINEARIZE" = "1" ] && [ $code -ne 2 ]; then
-        local tmp_linear="$(/usr/bin/mktemp "$work_dir/.quickpdf.XXXXXX")"
-        QPDF_ARGS+=(--linearize)
-        local lin_out
-        lin_out="$(run_qpdf "$src" "$tmp_linear")"
-        local lin_code=$?
-        if [ $lin_code -ne 2 ]; then
-            local plain_size="$(/usr/bin/stat -f %z "$final_out")"
-            local linear_size="$(/usr/bin/stat -f %z "$tmp_linear")"
-            if [ "$linear_size" -le "$plain_size" ]; then
-                /bin/mv -f "$tmp_linear" "$final_out"
-                # The delivered file now comes from the linearized pass, so
-                # report its status/warnings rather than the first pass's.
-                out="$lin_out"
-                code=$lin_code
+    # A file qpdf cannot linearize must not lose its optimize as well. The usual
+    # cause is a damaged page tree - "no pages found while calculating
+    # linearization data" - which is what the Repair operation exists for, and
+    # the plain pass writes such a file quite happily. The old two-pass got this
+    # fallback for free by always producing a plain result first; keeping it now
+    # costs an extra invocation on the error path only, for a file that would
+    # otherwise be reported as failed and not written at all.
+    #
+    # Never a silent fallback: the delivered file is NOT linearized although the
+    # box was ticked. The status is forced to 3 rather than passed through, so
+    # both runners report "completed with warnings" and show the note, instead
+    # of a clean checkmark on a file that quietly did not get what was asked.
+    # The note is deliberately the FIRST line of the message: the batch runner
+    # has room for one line per file, and takes that one.
+    if [ $code -eq 2 ]; then
+        local plain_args=() arg="" asked_to_linearize=""
+        for arg in "${QPDF_ARGS[@]}"; do
+            if [ "$arg" = "--linearize" ]; then
+                asked_to_linearize=1
             else
-                /bin/rm -f "$tmp_linear"
+                plain_args+=("$arg")
             fi
-        else
-            /bin/rm -f "$tmp_linear"
+        done
+        if [ -n "$asked_to_linearize" ]; then
+            QPDF_ARGS=("${plain_args[@]}")
+            local retry_out
+            retry_out="$(run_qpdf "$src" "$final_out")"
+            local retry_code=$?
+            # A whitelist, not "anything but 2": the callers deliver on 0 and 3
+            # and on nothing else, so a retry that died on a signal (139 from a
+            # SIGSEGV, say) must not be promoted to "written, with warnings" -
+            # that would mv whatever partial bytes it left over the user's
+            # chosen destination. This is the likeliest place in the app to meet
+            # such a crash, since the retry only ever runs on a file qpdf has
+            # just called fatally broken.
+            if [ $retry_code -eq 0 ] || [ $retry_code -eq 3 ]; then
+                out="$(printf 'linearize failed, so the file was written without it.\n%s\n%s' \
+                              "$out" "$retry_out")"
+                code=3
+            elif [ -n "$retry_out" ]; then
+                # Both passes fatal, so the file is beyond qpdf either way and
+                # the status stands. The message does not: the first one blames
+                # linearize, which the retry has already ruled out, so report
+                # the plain pass's account of why nothing could be written.
+                out="$retry_out"
+            fi
         fi
     fi
 
