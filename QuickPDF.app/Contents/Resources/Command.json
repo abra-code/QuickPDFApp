@@ -53,6 +53,9 @@
     },
     {
       "COMMAND_ID": "QuickPDF.files.selection.changed",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
       "EXECUTION_MODE": "exe_script_file",
       "NAME": "QuickPDF"
     },
@@ -83,6 +86,22 @@
     },
     {
       "COMMAND_ID": "QuickPDF.remove.selected",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.move.selected.up",
+      "ENVIRONMENT_VARIABLES": {
+        "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
+      },
+      "EXECUTION_MODE": "exe_script_file",
+      "NAME": "QuickPDF"
+    },
+    {
+      "COMMAND_ID": "QuickPDF.move.selected.down",
       "ENVIRONMENT_VARIABLES": {
         "OMC_ACTIONUI_TABLE_10_COLUMN_2_ALL_ROWS": ""
       },

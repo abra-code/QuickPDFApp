@@ -236,6 +236,85 @@ check "the user was told"            "1" "$([ "$(alerts_count)" -gt 0 ] && echo 
 check "and no window was requested"  "0" "$(chain_asked QuickPDF.quicklook.window)"
 
 # --------------------------------------------------------------------------
+section "adding keeps the list's order and appends the new files by name"
+# --------------------------------------------------------------------------
+# Merge combines the files in list order and Up and Down arrange it, so an add
+# must not sort the files already there.
+reset_document
+order_dir="$OMCTEST_WORK/order"
+/bin/mkdir -p "$order_dir"
+for _name in c a b d; do /bin/cp "$text_pdf" "$order_dir/$_name.pdf"; done
+seed_list "$order_dir/c.pdf" "$order_dir/a.pdf"
+omc_dialog_answer choose_object "$order_dir/d.pdf
+$order_dir/b.pdf
+$order_dir/a.pdf"
+run_with_list QuickPDF.add.files
+check "the old rows keep their order, the new ones follow sorted, and a repeat keeps its place" \
+    "c.pdf|a.pdf|b.pdf|d.pdf" "$(file_list_names | /usr/bin/paste -sd '|' -)"
+
+select_file "$order_dir/a.pdf"
+run_with_list QuickPDF.remove.selected
+check "Remove keeps the order of the rest" \
+    "c.pdf|b.pdf|d.pdf" "$(file_list_names | /usr/bin/paste -sd '|' -)"
+
+# --------------------------------------------------------------------------
+section "Up and Down move the selected file one place, and stop at either end"
+# --------------------------------------------------------------------------
+reset_document
+order_a="$OMCTEST_WORK/order a.pdf"
+order_b="$OMCTEST_WORK/order\\b.pdf"
+order_c="$OMCTEST_WORK/order c.pdf"
+# The backslash path is the one the selected file swaps with, not the selected
+# one: the harness finds a row by content through awk -v, which reads a
+# backslash as an escape, so it could not select that row even though the app
+# can.
+seed_list "$order_b" "$order_a" "$order_c"
+list_order() { file_list | /usr/bin/paste -sd '|' -; }
+
+clear_selection
+run_with_list QuickPDF.files.selection.changed
+check "both wait for a selection" "0 0" \
+    "$(ui_enabled "$MOVE_UP_BUTTON_ID") $(ui_enabled "$MOVE_DOWN_BUTTON_ID")"
+clear_selection
+run_with_list QuickPDF.move.selected.up
+check "a move with nothing selected changes nothing" "$order_b|$order_a|$order_c" "$(list_order)"
+
+select_file "$order_a"
+run_with_list QuickPDF.files.selection.changed
+check "a file in the middle can go either way" "1 1" \
+    "$(ui_enabled "$MOVE_UP_BUTTON_ID") $(ui_enabled "$MOVE_DOWN_BUTTON_ID")"
+
+run_with_list QuickPDF.move.selected.up
+check_status "move up exits cleanly" 0
+check "it swapped with the backslash path" "$order_a|$order_b|$order_c" "$(list_order)"
+check "the names moved with the paths" "order a.pdf|order\\b.pdf|order c.pdf" \
+    "$(file_list_names | /usr/bin/paste -sd '|' -)"
+check "it stays selected, found by its path" "0" "$(ui_selection "$TABLE_ID")"
+check "at the top, only Down is offered" "0 1" \
+    "$(ui_enabled "$MOVE_UP_BUTTON_ID") $(ui_enabled "$MOVE_DOWN_BUTTON_ID")"
+
+run_with_list QuickPDF.move.selected.up
+check "moving the first one up changes nothing" "$order_a|$order_b|$order_c" "$(list_order)"
+
+run_with_list QuickPDF.move.selected.down
+run_with_list QuickPDF.move.selected.down
+check "it moved down twice" "$order_b|$order_c|$order_a" "$(list_order)"
+check "and is still selected" "2" "$(ui_selection "$TABLE_ID")"
+check "at the bottom, only Up is offered" "1 0" \
+    "$(ui_enabled "$MOVE_UP_BUTTON_ID") $(ui_enabled "$MOVE_DOWN_BUTTON_ID")"
+
+run_with_list QuickPDF.move.selected.down
+check "moving the last one down changes nothing" "$order_b|$order_c|$order_a" "$(list_order)"
+
+# Adding to an empty list selects the first row, and places the buttons for it.
+reset_document
+omc_dialog_answer choose_object "$order_dir/c.pdf
+$order_dir/d.pdf"
+run_with_list QuickPDF.add.files
+check "a first add offers only Down" "0 1" \
+    "$(ui_enabled "$MOVE_UP_BUTTON_ID") $(ui_enabled "$MOVE_DOWN_BUTTON_ID")"
+
+# --------------------------------------------------------------------------
 section "the engine only gets variables the manifest actually declares"
 # --------------------------------------------------------------------------
 # The harness is more generous than the engine: it exports whatever a test sets,

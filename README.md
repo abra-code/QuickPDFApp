@@ -31,7 +31,7 @@ Most operations are 1-in / 1-out transforms applied to every file in the list, w
 | **Optimize** | Reduce file size. Recompresses and downsamples images (via pdfutil's `reduce` verb), lossless stream compression, object-stream generation, and removal of unreferenced resources. Linearization for fast web view is offered here too, off by default: it is object ordering for progressive display rather than a size technique, and it will grow a well-optimized file. |
 | **Split** | Split a PDF into parts of N pages each; parts land in a subfolder named after the source file. |
 | **Extract Pages** | Extract or reorder a page range using qpdf's page-range syntax. |
-| **Merge** | Combine every PDF in the list into one file, with an optional page range applied to each input. |
+| **Merge** | Combine every PDF in the list into one file, in the list's order, with an optional page range applied to each input. New files are added at the end of the list; the Up and Down buttons under it move the selected file. |
 | **Set Password** | Encrypt with user and/or owner passwords, choosing 40-, 128-, or 256-bit encryption and per-permission flags (print, modify, extract, annotate). |
 | **Decrypt** | Remove the password, or clear only the restrictions while keeping the file readable. |
 | **Rotate Pages** | Rotate a page range by a chosen angle. |

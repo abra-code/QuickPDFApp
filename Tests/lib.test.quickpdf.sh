@@ -56,7 +56,7 @@ TABLE_PATH_COLUMN=2
 # with no hint why. With it, it fails once and says which name went missing.
 for _required in TABLE_ID SUMMARY_VIEW_ID OPERATION_PICKER_ID RUN_BUTTON_ID \
                  REMOVE_BUTTON_ID GROUP_OPTIMIZE_ID GROUP_ENCRYPT_ID \
-                 ENC_STRENGTH_NOTICE_ID ENC_BITS_ID; do
+                 ENC_STRENGTH_NOTICE_ID ENC_BITS_ID MOVE_UP_BUTTON_ID MOVE_DOWN_BUTTON_ID; do
     eval "_value=\${$_required}"
     if [ -z "$_value" ]; then
         printf 'lib.test.quickpdf: %s did not import from lib.QuickPDF.sh\n' "$_required" >&2

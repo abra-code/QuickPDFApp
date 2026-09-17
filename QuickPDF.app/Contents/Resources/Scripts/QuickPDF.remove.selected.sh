@@ -17,7 +17,8 @@ if [ -n "$selected_path" ]; then
         fi
     done <<< "$all_paths"
 
-    printf "%s" "$buffer" | /usr/bin/sort -u | "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_set_rows_from_stdin
+    # Not sorted: the rest of the list keeps the order the user gave it.
+    printf "%s" "$buffer" | "$dialog_tool" "$window_uuid" ${TABLE_ID} omc_table_set_rows_from_stdin
 fi
 
 "$next_cmd" "$OMC_CURRENT_COMMAND_GUID" "QuickPDF.files.selection.changed"

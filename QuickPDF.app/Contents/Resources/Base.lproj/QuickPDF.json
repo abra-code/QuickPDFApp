@@ -18,7 +18,7 @@
     "properties": {
       "spacing": 8,
       "navigationSplitViewColumnWidth": {
-        "min": 220,
+        "min": 280,
         "ideal": 280,
         "max": 320
       }
@@ -78,6 +78,38 @@
                 "height": 32
               },
               "help": "Remove selected file from the list"
+            }
+          },
+          {
+            "type": "Button",
+            "id": 107,
+            "properties": {
+              "systemImage": "arrow.up",
+              "imageScale": "medium",
+              "buttonStyle": "plain",
+              "actionID": "QuickPDF.move.selected.up",
+              "disabled": true,
+              "frame": {
+                "width": 28,
+                "height": 32
+              },
+              "help": "Move the selected file up. Merge combines the files in list order."
+            }
+          },
+          {
+            "type": "Button",
+            "id": 108,
+            "properties": {
+              "systemImage": "arrow.down",
+              "imageScale": "medium",
+              "buttonStyle": "plain",
+              "actionID": "QuickPDF.move.selected.down",
+              "disabled": true,
+              "frame": {
+                "width": 28,
+                "height": 32
+              },
+              "help": "Move the selected file down. Merge combines the files in list order."
             }
           },
           {
