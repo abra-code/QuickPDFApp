@@ -28,6 +28,7 @@
         "type": "Table",
         "id": 10,
         "properties": {
+          "scrollContentBackground": "hidden",
           "columns": [
             "PDF Files"
           ],
